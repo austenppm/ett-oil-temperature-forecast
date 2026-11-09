@@ -1,9 +1,11 @@
 # Transformer Oil-Temperature Forecasting PoC (ETT dataset)
 
+**English** | [日本語](README.ja.md)
+
 Can a model forecast a power transformer's **oil temperature (OT) 24 hours ahead** well
 enough to support preventive maintenance, compared with today's threshold monitoring?
 
-- **Report (client-facing slides, Japanese):** [`slides/ETT_PoC_Report.pdf`](slides/ETT_PoC_Report.pdf)
+- **Report (client-facing slides):** [English](slides/ETT_PoC_Report_EN.pdf) | [日本語](slides/ETT_PoC_Report_JA.pdf)
 - **Code:** `src/ettpoc/` (Python, reproducible with one command)
 - **Contact:** austenppm12345.career@gmail.com
 
@@ -64,6 +66,7 @@ make setup          # Python 3.11+; creates .venv, installs pinned requirements 
 make all            # EDA, experiments, LSTM, horizon sweep, anomaly study, report (~45 min on a laptop CPU)
 make test           # unit tests, incl. no-lookahead checks on features, cleaning and flags (~10 s)
 make lint           # ruff lint + format check
+make slides         # both report PDFs (xelatex + Hiragino Sans, i.e. macOS)
 ```
 
 Data are downloaded on first run from the upstream ETDataset repository and verified by SHA-256
@@ -85,7 +88,7 @@ src/ettpoc/
   report.py       ensemble, bias correction, tables and figures for the report
 tests/            pytest: leakage (features ignore the future), data-quality rules,
                   Diebold–Mariano, alert episodes, CQR coverage, grey-box tau recovery
-slides/           LaTeX source of the report (xelatex) and the compiled PDF
+slides/           LaTeX sources of the report, Japanese and English (xelatex), and the PDFs
 docs/REFERENCES.md
 ```
 
