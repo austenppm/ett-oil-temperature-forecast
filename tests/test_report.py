@@ -27,3 +27,4 @@ def test_example_forecast_figure_uses_current_alert_inputs(monkeypatch, tmp_path
     report.fig_example(pd.DataFrame(records))
 
     assert (tmp_path / "res_example_forecast.png").is_file()
+    assert (tmp_path / "ja" / "res_example_forecast.png").is_file()

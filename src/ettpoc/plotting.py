@@ -43,7 +43,6 @@ plt.rcParams.update(
 
 
 JA_FONT = ["Hiragino Sans", "Hiragino Kaku Gothic ProN", "DejaVu Sans"]
-JA_DIR = C.FIG_DIR / "ja"
 
 
 def save(fig, name):
@@ -70,6 +69,7 @@ def save(fig, name):
         text.set_fontfamily(JA_FONT)
     if missing:
         print(f"  ! {name}: no Japanese text for {sorted(missing)}", flush=True)
-    JA_DIR.mkdir(parents=True, exist_ok=True)
-    fig.savefig(JA_DIR / f"{name}.png")
+    ja_dir = C.FIG_DIR / "ja"  # resolved per call, so a redirected FIG_DIR is respected
+    ja_dir.mkdir(parents=True, exist_ok=True)
+    fig.savefig(ja_dir / f"{name}.png")
     plt.close(fig)
