@@ -78,7 +78,7 @@
       \end{itemize}
     \end{column}
   \end{columns}
-  \source{OT：油温（Oil Temperature）。負荷6系統（HUFL等）はETTの公開定義に従う。}
+  \source{OT：油温（Oil Temperature）。負荷6系統（HUFL等）はETTの公開定義に従う。ETTm1/m2は同じ変圧器の15分値（毎正時の値はETTh1/h2と一致）。24時間先の判断には1時間解像度で十分と仮定し、時間データを使用。}
 \end{frame}
 
 % ------------------------------------------------------------------ 3 data quality
@@ -218,7 +218,7 @@
   \scriptsize
   \begin{itemize}\setlength{\itemsep}{1pt}
     \item MAE：ETTh1 1.76→\hl{1.60℃}、ETTh2 3.25→\hl{3.09℃}（いずれも p<0.01）。等重みアンサンブル（C）は 6.1\% / 5.1\% で次点
-    \item \hl{負荷計画（C）}は線形・木・アンサンブルで一貫して改善（ETTh1のRidgeで3.8\%→9.1\%）。一方、物理モデル単体とLSTMでは改善せず、計画情報の活かし方はモデル依存
+    \item \hl{負荷計画（C）}は線形・木・アンサンブルで一貫して改善（ETTh1のRidgeで3.8\%→9.1\%）。一方、物理モデル単体は両変電所で悪化し、LSTMは変電所により逆の結果。計画情報の活かし方はモデル依存
   \end{itemize}
 \end{frame}
 
@@ -314,7 +314,7 @@
       \vspace{0.2cm}
       \begin{itemize}\setlength{\itemsep}{2pt}
         \item 名目どおりの信頼度を\hl{実測で確認}してから保全判断に使うべき
-        \item 区間が広い（約±6℃）のは外気温不在による本質的な不確実性
+        \item 区間が広い（ETTh2で約±6℃）のは外気温不在による本質的な不確実性
       \end{itemize}
     \end{column}
   \end{columns}
@@ -347,8 +347,8 @@
   \centering\includegraphics[width=\textwidth,height=4.1cm,keepaspectratio]{res_monthly}\par\raggedright
   \footnotesize
   \begin{itemize}\setlength{\itemsep}{1pt}
-    \item 高温時（開発期間の上位10\%）のMAE（ETTh2）：現在値維持 \textbf{2.69℃} に対し Ridge（C）3.07℃、ピーク重視GBM 3.11℃。\hlb{ピークを平均側へ引き戻す傾向}
-    \item 唯一LSTM（B）が2.57℃と下回り、系列モデルは極値で有望。高温域専用モデルや外気温の追加で改善余地
+    \item 高温時（開発期間の上位10\%）のMAE（ETTh2）：現在値維持 \textbf{2.69℃} に対し Ridge（C）3.07℃、ピーク重視GBM 3.10℃。\hlb{ピークを平均側へ引き戻す傾向}
+    \item 唯一LSTM（B）が2.56℃と下回り、系列モデルは極値で有望。高温域専用モデルや外気温の追加で改善余地
     \item 警告では余裕幅でこの過小予測を補っている（p.12）
   \end{itemize}
 \end{frame}
@@ -370,7 +370,7 @@
       \begin{itemize}\setlength{\itemsep}{1pt}
         \item 負荷から期待油温を推定し、6時間平均の差で警報（Djamali \& Tenbohlen、CIGREのデジタルツイン方式）
         \item 擬似故障（+3〜8℃）の検知率は\hlb{10\%以下}。期待値モデルが故障を「追従」してしまい、差が警報閾値（正常時の99.5\%点：1.5〜1.7℃）に届かない
-        \item 12時間で+20℃の急変はETTh1で全件検知
+        \item 12時間で+20℃の急変はETTh1で全件検知（ETTh2は10\%）
       \end{itemize}}
     \end{column}
   \end{columns}

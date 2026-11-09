@@ -29,7 +29,7 @@ enough to support preventive maintenance, compared with today's threshold monito
 | Framing **B** (strict) | Only data measured up to *t* (plus the calendar of *T*) |
 | Framing **C** (what-if) | Also the load profile over (*t*, *T*], interpreted as the operator's **day-ahead load plan**. The brief explicitly allows features at the target time; we state the availability assumption and test its sensitivity to plan error. |
 | Model target | Δ OT = OT(*T*) − OT(*t*), which is far more stationary than the level |
-| Stations | ETTh1 and ETTh2 (hourly). ETTm* are the same series at 15-min resolution and gave identical conclusions. |
+| Stations | ETTh1 and ETTh2 (hourly). ETTm1/ETTm2 are the same two transformers at 15-min resolution (their on-the-hour rows equal ETTh1/ETTh2 exactly); hourly resolution is assumed sufficient for a 24 h-ahead decision, so ETTm* were not modelled. |
 
 ## Evaluation protocol
 
