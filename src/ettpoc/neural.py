@@ -150,7 +150,7 @@ def run_station(name: str) -> pd.DataFrame:
             test = test.to_numpy()
             delta = fit_predict(df, ot, pos[train], y.to_numpy()[train], pos[test], fr)
             frames.append(Fold(name, fr, start, meta[test]).predictions("LSTM", delta))
-        print(f"  {name} LSTM framing {fr} done ({time.time() - t0:.0f}s)")
+        print(f"  {name} LSTM framing {fr} done ({time.time() - t0:.0f}s)", flush=True)
     return pd.concat(frames, ignore_index=True)
 
 

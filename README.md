@@ -9,6 +9,13 @@ enough to support preventive maintenance, compared with today's threshold monito
 - **Code:** `src/ettpoc/` (Python, reproducible with one command)
 - **Contact:** austenppm12345.career@gmail.com
 
+**Quick start** (macOS/Linux, Python 3.12+):
+
+```bash
+make test   # first run sets up .venv automatically, then runs the 25 tests (~2 min)
+make all    # regenerates every table and figure (~45 min, prints progress)
+```
+
 ## Key results (evaluation year Jul 2017 – Jun 2018, 12 monthly rolling folds)
 
 | | ETTh1 | ETTh2 |
@@ -83,7 +90,7 @@ The headline Ridge result was essentially unchanged (−9.1 % / −4.8 %).
 ## Reproduce
 
 ```bash
-make setup          # Python 3.12+ (tested on 3.14); creates .venv, installs pinned requirements and the package
+make setup          # optional: every target below sets up .venv first if needed (Python 3.12+, tested on 3.14)
 make all            # EDA, experiments, LSTM, horizon sweep, anomaly study, report (~45 min on a laptop CPU)
 make test           # unit tests, incl. no-lookahead checks on features, cleaning and flags (~10 s)
 make lint           # ruff lint + format check

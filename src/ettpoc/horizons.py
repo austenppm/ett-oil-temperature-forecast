@@ -74,7 +74,7 @@ def run() -> pd.DataFrame:
                 }
                 for m, v in pooled.items()
             ]
-            print(f"  {name} h={h} done")
+            print(f"  {name} horizon {h} h done", flush=True)
     t = pd.DataFrame(rows)
     t.round(4).to_csv(C.TAB_DIR / "results_horizons.csv", index=False)
     return t

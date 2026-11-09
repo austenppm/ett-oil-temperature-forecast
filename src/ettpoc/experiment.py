@@ -340,9 +340,12 @@ def run_station(name: str) -> StationResults:
         start: bad_targets_known_at(df, label_cutoff(start)) for start, _ in monthly_folds()
     }
     for fr, data in prepare(name, df, results).items():
-        for start, end in monthly_folds():
+        for i, (start, end) in enumerate(monthly_folds(), 1):
             evaluate_fold(name, data, start, end, bad_known[start], rng, results)
-        print(f"  {name} framing {fr} done ({time.time() - t0:.0f}s)")
+            print(
+                f"  {name} framing {fr}: fold {i}/12 ({start:%Y-%m}) done, {time.time() - t0:.0f}s",
+                flush=True,
+            )
     return results
 
 
