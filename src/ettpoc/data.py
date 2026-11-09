@@ -19,6 +19,7 @@ import numpy as np
 import pandas as pd
 
 from . import config as C
+from .progress import done, step
 
 USEFUL_LOADS = ("HUFL", "MUFL", "LUFL")
 DOWNLOAD_ATTEMPTS = 3
@@ -45,7 +46,7 @@ def download(url: str, path: Path, expected_sha256: str) -> None:
         except (OSError, ValueError) as err:
             if attempt == DOWNLOAD_ATTEMPTS:
                 raise
-            print(f"  download attempt {attempt} failed ({err}); retrying")
+            step(f"download attempt {attempt} failed ({err}); retrying")
             time.sleep(2 * attempt)
         finally:
             Path(tmp).unlink(missing_ok=True)
@@ -55,8 +56,9 @@ def ensure_csv(name: str) -> Path:
     """Return the local CSV path, downloading from upstream if missing; verify SHA-256."""
     path = C.DATA_DIR / f"{name}.csv"
     if not path.exists():
-        print(f"Downloading {name} from {C.UPSTREAM_URL.format(name=name)}")
+        step(f"Downloading {name} from the ETDataset repository (first run only)")
         download(C.UPSTREAM_URL.format(name=name), path, C.SHA256[name])
+        done(f"{name} downloaded and verified (SHA-256)")
     digest = sha256(path)
     if digest != C.SHA256[name]:
         raise ValueError(f"{path} has unexpected SHA-256 {digest}; expected {C.SHA256[name]}")

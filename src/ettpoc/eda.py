@@ -10,6 +10,7 @@ from . import config as C
 from .data import development, load_station, quality_flags
 from .features import apparent_power_sq
 from .plotting import INK, MUTED, STATION_COLORS, plt, save
+from .progress import done, note, step, wrote
 
 
 def detrend(s, days=30):
@@ -191,15 +192,26 @@ def summary_table(dfs, flags, lag_rows):
 
 
 def main() -> None:
+    step("Loading both stations and checking data quality")
     dfs = {n: load_station(n) for n in C.STATIONS}
     flags = {n: quality_flags(df) for n, df in dfs.items()}
+    done("Data loaded: 17,420 hourly rows per station, no gaps")
+    step("Drawing EDA figures")
     fig_overview(dfs)
     fig_daily_profile(dfs)
     lag_rows = fig_thermal_lag(dfs)
     fig_quality(dfs, flags)
     fig_balance(dfs)
     fig_persistence_horizon(dfs)
-    print(summary_table(dfs, flags, lag_rows).T.to_string())
+    summary = summary_table(dfs, flags, lag_rows).set_index("station")
+    done("EDA figures and summary table")
+    for name, r in summary.iterrows():
+        note(
+            f"{name}: stuck-load hours {r.share_hours_load_stuck:.1%}, "
+            f"mean OT {r.OT_mean_dev_year:.1f} → {r.OT_mean_eval_year:.1f} °C "
+            "(development → evaluation year)"
+        )
+    wrote(C.TAB_DIR / "eda_summary.csv", C.FIG_DIR)
 
 
 if __name__ == "__main__":

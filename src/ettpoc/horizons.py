@@ -20,6 +20,7 @@ from .experiment import recency_weights, tune
 from .features import ABSOLUTE_LEVEL_COLS, build
 from .models import make_gbm, make_ridge
 from .plotting import INK, MODEL_COLORS, STATION_COLORS, plt, save
+from .progress import done, step, wrote
 
 HORIZONS = (1, 3, 6, 12, 24, 48)
 
@@ -30,6 +31,7 @@ def run() -> pd.DataFrame:
         df = load_station(name)
         flags = quality_flags(df)
         ot = clean_ot_causal(df.OT)
+        step(f"{name}: tuning and 12 monthly refits at horizons {', '.join(map(str, HORIZONS))} h")
         for h in HORIZONS:
             abs_errors = defaultdict(list)  # model -> absolute errors per fold
             for fr in C.FRAMINGS:
@@ -74,7 +76,7 @@ def run() -> pd.DataFrame:
                 }
                 for m, v in pooled.items()
             ]
-            print(f"  {name} horizon {h} h done", flush=True)
+            done(f"{name}: {h:2d} h ahead")
     t = pd.DataFrame(rows)
     t.round(4).to_csv(C.TAB_DIR / "results_horizons.csv", index=False)
     return t
@@ -125,6 +127,7 @@ def figure(t: pd.DataFrame) -> None:
 
 def main() -> None:
     figure(run())
+    wrote(C.TAB_DIR / "results_horizons.csv", C.FIG_DIR / "res_horizons.png")
 
 
 if __name__ == "__main__":

@@ -22,6 +22,7 @@ from .data import bad_target_causal, development, load_station, quality_flags, v
 from .evaluation import diebold_mariano, evaluate_alerts, holm, point_metrics
 from .experiment import NOISE_SEEDS, noise_model_name
 from .plotting import INK, MODEL_COLORS, MUTED, STATION_COLORS, plt, save
+from .progress import done, note, step, wrote
 
 ENSEMBLE_MEMBERS = ["Ridge", "GBM-robust", "Hybrid"]
 BC_MODELS = ["Ridge", "Ensemble"]
@@ -600,38 +601,38 @@ def fig_example(p):
 
 
 def main() -> None:
+    step("Loading all forecasts and adding the ensemble and bias-corrected variants")
     p_all = load_all()
     p = p_all[~p_all.bad_target]
+    done("Forecasts loaded")
+    step("Scoring every model against persistence")
     t = overall_table(p)
-    print(
-        t[
-            [
-                "station",
-                "framing",
-                "model",
-                "MAE",
-                "skill_vs_persistence",
-                "DM_p",
-                "MAE_hot",
-                "MAE_hot_persistence",
-            ]
-        ]
-        .round(3)
-        .to_string(index=False)
-    )
     fig_skill(t)
     fig_monthly(monthly_table(p))
-    print(interval_table().to_string(index=False))
-    print(alert_table(p_all).round(2).to_string(index=False))
-    print(alert_tradeoff(p_all).round(2).to_string(index=False))
-    nt = noise_table(p)
-    print(nt.round(3).to_string(index=False))
-    fig_noise(nt)
-    imp = importance_table()
-    fig_importance(imp)
-    print(imp.round(3).to_string(index=False))
-    print(greybox_table().to_string(index=False))
+    done("Accuracy tables and figures")
+    for st in C.STATIONS:
+        r = t[(t.station == st) & (t.framing == "C") & (t.model == "Ridge")].iloc[0]
+        note(f"{st}: Ridge (C) 24 h error {r.skill_vs_persistence:+.1%} vs persistence")
+    step("Intervals, alerts, load-plan robustness and feature importance")
+    intervals = interval_table()
+    alert_table(p_all)
+    tradeoff = alert_tradeoff(p_all)
+    fig_noise(noise_table(p))
+    fig_importance(importance_table())
+    greybox_table()
     fig_example(p)
+    done("All report tables and figures")
+    c = intervals[intervals.framing == "C"].set_index("station")
+    note(
+        f"90% interval coverage after CQR: "
+        f"ETTh1 {c.coverage_cqr.ETTh1:.0%}, ETTh2 {c.coverage_cqr.ETTh2:.0%}"
+    )
+    a = tradeoff[(tradeoff.framing == "C") & (tradeoff.margin == 4.0)].iloc[0]
+    note(
+        f"ETTh2 alerts at a 4 °C margin: {a.recall_early:.0%} of onsets warned, "
+        f"median {a.median_lead_h:.0f} h ahead"
+    )
+    wrote(C.TAB_DIR, C.FIG_DIR)
 
 
 if __name__ == "__main__":

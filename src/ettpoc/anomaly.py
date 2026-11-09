@@ -29,6 +29,7 @@ from .data import bad_targets_known_at, load_station, quality_flags, valid_at
 from .features import build
 from .models import make_ridge
 from .plotting import INK, MUTED, STATION_COLORS, plt, save
+from .progress import done, note, step, wrote
 
 WINDOW = 6  # hours averaged by the detector statistic
 REF_H = 1  # horizon of the "expected OT" reference model
@@ -226,12 +227,20 @@ def main() -> None:
     rng = np.random.default_rng(C.SEED)
     rows = []
     for name in C.STATIONS:
+        step(f"{name}: calibrating the detector and injecting synthetic cooling faults")
         r, example = run_station(name, rng)
         rows += r
         fig_example(name, example)
+        done(f"{name}: fault study finished")
     t = pd.DataFrame(rows)
     t.round(3).to_csv(C.TAB_DIR / "results_anomaly.csv", index=False)
-    print(t.round(2).to_string(index=False))
+    for name, g in t[t.n_faults.notna()].groupby("station"):
+        rates = ", ".join(
+            f"{test.split()[1]}: {rate:.0%}"
+            for test, rate in zip(g.test, g.detection_rate, strict=True)
+        )
+        note(f"{name} detection rate by fault size: {rates}")
+    wrote(C.TAB_DIR / "results_anomaly.csv")
 
 
 if __name__ == "__main__":

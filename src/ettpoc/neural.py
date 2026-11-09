@@ -10,8 +10,6 @@ Output: dOT = OT(t+24) - OT(t).
 Run:  python -m ettpoc.neural        (writes outputs/predictions_nn.csv.gz)
 """
 
-import time
-
 import numpy as np
 import pandas as pd
 import torch
@@ -22,6 +20,7 @@ from .data import bad_targets_known_at, clean_ot_causal, load_station, quality_f
 from .evaluation import fold_masks, label_cutoff, monthly_folds
 from .experiment import Fold
 from .features import apparent_power_sq, build, calendar, cyclic
+from .progress import done, step, wrote
 
 LOOKBACK = 72
 HIDDEN = 32
@@ -133,7 +132,6 @@ def fit_predict(df, ot, pos_train, y_train, pos_test, framing) -> np.ndarray:
 
 
 def run_station(name: str) -> pd.DataFrame:
-    t0 = time.time()
     df = load_station(name)
     flags = quality_flags(df)
     ot = clean_ot_causal(df.OT)
@@ -143,14 +141,15 @@ def run_station(name: str) -> pd.DataFrame:
         pos = df.index.get_indexer(X.index)
         tt = meta.target_time
         usable = (~meta.input_flagged).to_numpy() & (pos >= LOOKBACK)
-        for start, end in monthly_folds():
+        step(f"{name} framing {fr}: training an LSTM for each of the 12 months")
+        for i, (start, end) in enumerate(monthly_folds(), 1):
             available, test = fold_masks(tt, start, end)
             label_ok = valid_at(bad_targets_known_at(df, label_cutoff(start)), tt)
             train = usable & available.to_numpy() & label_ok
             test = test.to_numpy()
             delta = fit_predict(df, ot, pos[train], y.to_numpy()[train], pos[test], fr)
             frames.append(Fold(name, fr, start, meta[test]).predictions("LSTM", delta))
-        print(f"  {name} LSTM framing {fr} done ({time.time() - t0:.0f}s)", flush=True)
+            done(f"{name} framing {fr}: month {i:2d}/12 ({start:%Y-%m})")
     return pd.concat(frames, ignore_index=True)
 
 
@@ -161,7 +160,8 @@ def main() -> None:
     out = pd.concat([run_station(n) for n in C.STATIONS], ignore_index=True)
     out.to_csv(C.OUT_DIR / "predictions_nn.csv.gz", index=False)
     C.NN_RUN_ID_FILE.write_text(run_id)
-    print("saved", len(out), "rows")
+    done(f"Saved {len(out):,} LSTM forecasts")
+    wrote(C.OUT_DIR / "predictions_nn.csv.gz")
 
 
 if __name__ == "__main__":

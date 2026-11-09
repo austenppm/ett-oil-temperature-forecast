@@ -15,7 +15,6 @@ time fall back to persistence (a realistic run-time rule).
 """
 
 import json
-import time
 import uuid
 from dataclasses import dataclass, field
 
@@ -34,6 +33,7 @@ from .data import (
 from .evaluation import fold_masks, label_cutoff, monthly_folds
 from .features import ABSOLUTE_LEVEL_COLS, apparent_power_sq, build, feature_groups, raw_window
 from .models import CQR, GreyBoxThermal, make_gbm, make_mlp, make_ridge
+from .progress import done, step, wrote
 
 RIDGE_ALPHAS = [0.1, 1, 10, 100, 1000]
 WINDOW_ALPHAS = [10, 100, 1000, 10000]
@@ -332,20 +332,20 @@ def evaluate_fold(
 
 
 def run_station(name: str) -> StationResults:
-    t0 = time.time()
     results = StationResults()
     rng = np.random.default_rng(C.SEED)
     df = load_station(name)
     bad_known = {
         start: bad_targets_known_at(df, label_cutoff(start)) for start, _ in monthly_folds()
     }
-    for fr, data in prepare(name, df, results).items():
+    step(f"{name}: building features and tuning hyper-parameters on development data")
+    prepared = prepare(name, df, results)
+    done(f"{name}: features ready, hyper-parameters chosen")
+    for fr, data in prepared.items():
+        step(f"{name} framing {fr}: refitting all models for each of the 12 months")
         for i, (start, end) in enumerate(monthly_folds(), 1):
             evaluate_fold(name, data, start, end, bad_known[start], rng, results)
-            print(
-                f"  {name} framing {fr}: fold {i}/12 ({start:%Y-%m}) done, {time.time() - t0:.0f}s",
-                flush=True,
-            )
+            done(f"{name} framing {fr}: month {i:2d}/12 ({start:%Y-%m})")
     return results
 
 
@@ -371,7 +371,8 @@ def main() -> None:
     records("intervals").to_csv(C.TAB_DIR / "intervals_folds.csv", index=False)
     hyperparameters = {name: res.hyperparameters for name, res in stations.items()}
     (C.TAB_DIR / "chosen_hyperparameters.json").write_text(json.dumps(hyperparameters, indent=2))
-    print("saved", len(predictions), "prediction rows")
+    done(f"Saved {len(predictions):,} forecasts")
+    wrote(C.OUT_DIR / "predictions.csv.gz", C.TAB_DIR)
 
 
 if __name__ == "__main__":
