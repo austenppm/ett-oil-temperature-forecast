@@ -14,7 +14,7 @@ define banner
 endef
 
 .DEFAULT_GOAL := help
-.PHONY: help setup eda experiment neural horizons anomaly report all slides test lint
+.PHONY: help eda experiment neural horizons anomaly report all slides test lint
 # The pipeline stages read each other's outputs, so they must never run in parallel.
 .NOTPARALLEL:
 
@@ -27,14 +27,12 @@ help:
 	@printf '  Single stages: make eda | experiment | neural | horizons | anomaly | report\n'
 	@printf '  The first command you run sets up .venv automatically (Python 3.12+).\n\n'
 
-# Every target sets up the environment first if needed; `make setup` alone is optional.
-setup: $(INSTALLED)
-
+# Every target sets up the environment on first use, so there is no separate setup step.
 $(INSTALLED): requirements.txt requirements-dev.txt pyproject.toml
 	@$(PYTHON) -c 'import sys; sys.exit(sys.version_info < (3, 12))' 2>/dev/null || \
-	  { printf 'Python 3.12 or newer is needed (found: %s).\nTry: make PYTHON=python3.12 setup\n' \
+	  { printf 'Python 3.12 or newer is needed (found: %s).\nTry: make PYTHON=python3.12 test\n' \
 	    "$$($(PYTHON) --version 2>&1)"; exit 1; }
-	$(call banner,setup,Setting up the Python environment,first run only - about 1-2 min)
+	$(call banner,first run,Setting up the Python environment,about 1-2 min - only once)
 	@$(PYTHON) -m venv .venv
 	@printf '  … installing pinned packages (numpy, pandas, scikit-learn, torch, ...)\n'
 	@$(PIP) -r requirements-dev.txt

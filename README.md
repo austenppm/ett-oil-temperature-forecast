@@ -17,8 +17,7 @@ make test   # first run sets up .venv automatically, then runs the 25 tests (~2 
 make all    # regenerates every table and figure in 6 numbered stages (~45 min, shows progress)
 ```
 
-Use `make all` on its own: it sets up the environment first. Do not start two commands at
-once (e.g. `make setup & make all`); chain them with `&&` if you want both.
+There is no separate setup step: whichever command you run first creates the environment.
 
 ## Key results (evaluation year Jul 2017 – Jun 2018, 12 monthly rolling folds)
 
@@ -94,8 +93,7 @@ The headline Ridge result was essentially unchanged (−9.1 % / −4.8 %).
 ## Reproduce
 
 ```bash
-make                # list of commands
-make setup          # optional: every target below sets up .venv first if needed (Python 3.12+, tested on 3.14)
+make                # list of commands (Python 3.12+, tested on 3.14; the first command creates .venv)
 make all            # EDA, experiments, LSTM, horizon sweep, anomaly study, report (~45 min on a laptop CPU)
 make test           # unit tests, incl. no-lookahead checks on features, cleaning and flags (~10 s)
 make lint           # ruff lint + format check
