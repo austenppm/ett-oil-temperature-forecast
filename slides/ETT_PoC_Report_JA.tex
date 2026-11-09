@@ -19,10 +19,10 @@
 
 % ------------------------------------------------------------------ 1 summary
 \settag{エグゼクティブサマリー}
-\begin{frame}{負荷計画を用いた予測アラートにより、過熱の87\%を約21時間前に予告できる。ただし精度向上は誤差5〜9\%に留まり、本格導入には外気温データが必要}
+\begin{frame}{負荷計画を用いた予測アラートにより、過熱の80\%を約23時間前に予告できる。ただし精度向上は誤差5〜9\%に留まり、本格導入には外気温データが必要}
   \kpi{−9.1\%}{24h先予測誤差（ETTh1）\\「現在値維持」比}{accent}\hfill
-  \kpi{87\%}{過熱開始の事前警告率\\（ETTh2、誤報 月11時間）}{good}\hfill
-  \kpi{約21h}{警告のリードタイム\\（中央値）}{accent2}\hfill
+  \kpi{80\%}{過熱開始の事前警告率\\（ETTh2、誤報 月10時間）}{good}\hfill
+  \kpi{約23h}{警告のリードタイム\\（中央値）}{accent2}\hfill
   \kpi{0h}{現行の閾値監視の\\リードタイム}{bad}
   \vspace{0.2cm}
   \begin{columns}[T]
@@ -30,9 +30,9 @@
       \softbox{}{\scriptsize\textbf{分かったこと}
       \begin{itemize}\setlength{\itemsep}{1pt}
         \item 油温は慣性が強く24h先の改善は5〜9\%に留まるが、\hl{3〜6時間先なら誤差を13〜53\%削減}できる
-        \item 最良は物理に基づく特徴量＋線形モデル。GBM・LSTM等の複雑なモデルは上回らなかった
+        \item ETTh1の最良は物理特徴量＋線形モデル（ETTh2はアンサンブルが僅差で最良）。GBM・LSTM等は上回らなかった
         \item 価値は精度よりも「警告の先行時間」にある。翌日の負荷計画が鍵
-        \item 予測区間はそのままでは過小（被覆77〜84\%）。コンフォーマル補正で90\%に校正
+        \item 予測区間はそのままでは過小（被覆75〜84\%）。コンフォーマル補正で90\%に校正
       \end{itemize}}
     \end{column}
     \begin{column}{0.49\textwidth}
@@ -44,7 +44,7 @@
       \end{itemize}}
     \end{column}
   \end{columns}
-  \source{評価：2017年7月〜2018年6月の12か月、月次ローリング検証。警告率は過熱開始15件に基づく参考値。}
+  \source{評価：2017年7月〜2018年6月の12か月、月次ローリング検証。警告率は過熱開始15件に基づく参考値で、余裕幅4℃は評価年の結果から選んだ探索的な設定。}
 \end{frame}
 
 % ------------------------------------------------------------------ 2 scope
@@ -53,7 +53,7 @@
   \begin{columns}[T]
     \begin{column}{0.56\textwidth}
       \centering
-      \begin{tikzpicture}[x=0.62cm,y=0.62cm,font=\scriptsize]
+      \begin{tikzpicture}[x=0.54cm,y=0.62cm,font=\scriptsize]
         \draw[->,thick,muted] (0,0) -- (12.5,0) node[right]{時刻};
         \draw[thick] (6,-0.2) -- (6,0.2) node[above=2pt]{\textbf{t}（予測時点）};
         \draw[thick] (12,-0.2) -- (12,0.2) node[above=2pt]{\textbf{T = t+24h}};
@@ -94,7 +94,7 @@
         \item \textbf{31日の凍結}：両変圧器とも\hl{毎月31日の24時間}が全7項目で同一値。収集・補完処理の痕跡と判断（各14日）
         \item \textbf{センサ固着}：ETTh2のMUFLが\hl{1,025時間（43日）}一定値。固着時間はETTh1 3.2\%、ETTh2 16.2\%
         \item \textbf{スパイク}：1時間で −20℃→+23℃ の往復（ETTh2）
-        \item \textbf{整合性}：高圧側負荷＝中圧＋低圧の関係がETTh1では成立（r=0.99）、ETTh2では不成立（r=0.48）
+        \item \textbf{整合性}：列名から高圧側＝中圧＋低圧と仮定すると、ETTh1では成立（r=0.99）、ETTh2では不成立（r=0.48）。不一致だけでは故障と断定できない
       \end{itemize}
       \vspace{0.1cm}
       \softbox{}{\scriptsize\textbf{対応}：異常な目的値は学習・評価から除外。入力センサの固着を検知した場合は「現在値維持」に自動切替（運用時と同じ規則、過去データのみで判定）}
@@ -154,8 +154,8 @@
     設計判断 & 内容 & 根拠 \\
     \midrule
     変化量を予測 & OT(T)−OT(t) を学習し、現在値に加算 & 年次の水準変化（p.6）。木モデルは学習範囲外を外挿できない \\
-    物理特徴量 & 電流²に相当するS²、時定数3/12/48hの平滑化、熱モデルの時定数推定 & IEC 60076-7 の一次遅れ熱モデル。負荷影響の時間遅れ（p.5） \\
-    強い基準との比較 & 「現在値維持」比のスキルとDiebold–Mariano検定 & 慣性が強い系列では単純予測が強い（Cui et al. 2021、Hewamalage et al. 2023） \\
+    物理特徴量 & 電流²に相当するS²、半減期3/12/48hの指数平滑、熱モデルの時定数推定 & IEC 60076-7 の一次遅れ熱モデル。負荷影響の時間遅れ（p.5） \\
+    強い基準との比較 & 「現在値維持」比のスキルとDiebold–Mariano検定 & 変化の緩やかな系列では単純予測が強い（Cui et al. 2021、Hewamalage et al. 2023） \\
     ロール検証 & 12か月×月次で再学習、全季節を評価。調整は開発期間のみ & 単一の春季テストでは季節依存の結論になる \\
     データ品質の自動処理 & 固着・スパイクを過去データのみで検知し、現在値予測へ切替 & p.4の欠陥が運用でも起こりうる \\
     区間の校正 & 分位点回帰＋コンフォーマル補正（CQR） & 区間の過小被覆が既知の課題（Tembo et al. 2025） \\
@@ -168,7 +168,7 @@
 \settag{評価方法}
 \begin{frame}{評価は「未来を一切見ない」ことを徹底し、12か月の月次ロール検証で全季節の汎化性能を測った}
   \centering
-  \begin{tikzpicture}[x=0.52cm,y=0.42cm,font=\scriptsize]
+  \begin{tikzpicture}[x=0.44cm,y=0.38cm,font=\scriptsize]
     \foreach \i in {0,...,23} { \draw[rule] (\i,0.6) -- (\i,0.8); }
     \node[above] at (0,0.8) {2016-07};
     \node[above] at (24,0.8) {2018-06};
@@ -185,13 +185,13 @@
     \fill[accent!35] (2,-4.7) rectangle (3,-4.3); \node[right] at (3.1,-4.5) {学習（拡張窓）};
     \fill[good!60] (8,-4.7) rectangle (9,-4.3); \node[right] at (9.1,-4.5) {テスト月};
   \end{tikzpicture}
-  \vspace{0.25cm}
+  \vspace{0.1cm}
   \begin{columns}[T]
     \begin{column}{0.32\textwidth}\footnotesize
       \textbf{リーク防止}
       \begin{itemize}
-        \item 標準化・特徴量・閾値はすべて学習期間内で計算
-        \item 分割は予測対象時刻で行う
+        \item 各月のモデルは最初の予測時点で再学習し、その時点で既知の正解のみ使用
+        \item 閾値・校正は開発期間のみ
       \end{itemize}
     \end{column}
     \begin{column}{0.32\textwidth}\footnotesize
@@ -205,6 +205,7 @@
       \textbf{有意性}
       \begin{itemize}
         \item Diebold–Mariano検定（24h重複予測の自己相関をHAC分散で補正）
+        \item 24手法の比較はHolm法で多重比較補正
       \end{itemize}
     \end{column}
   \end{columns}
@@ -213,12 +214,12 @@
 
 % ------------------------------------------------------------------ 8 accuracy
 \settag{結果 ① 予測精度}
-\begin{frame}{負荷計画を用いた線形モデルが最良で、24時間先の誤差を「現在値維持」比9.1\%（ETTh1）・4.8\%（ETTh2）削減した}
-  \centering\includegraphics[width=\textwidth,height=4.9cm,keepaspectratio]{res_skill}\par\raggedright
+\begin{frame}{負荷計画を用いた線形モデルは24時間先の誤差を9.1\%（ETTh1）・4.8\%（ETTh2）削減した。ETTh2ではアンサンブル（5.8\%）が僅差で上回る}
+  \centering\includegraphics[width=\textwidth,height=3.9cm,keepaspectratio]{res_skill}\par\raggedright
   \scriptsize
   \begin{itemize}\setlength{\itemsep}{1pt}
-    \item MAE：ETTh1 1.76→\hl{1.60℃}、ETTh2 3.25→\hl{3.09℃}（いずれも p<0.01）。等重みアンサンブル（C）は 6.1\% / 5.1\% で次点
-    \item \hl{負荷計画（C）}は線形・木・アンサンブルで一貫して改善（ETTh1のRidgeで3.8\%→9.1\%）。一方、物理モデル単体は両変電所で悪化し、LSTMは変電所により逆の結果。計画情報の活かし方はモデル依存
+    \item MAE：ETTh1 1.76→\hl{1.60℃}（Holm補正後 p<0.001）、ETTh2 3.25→\hl{3.09℃}（補正前 p=0.004、補正後 p=0.10で有意とは言えない）
+    \item \hl{負荷計画（C）}は物理モデル単体を除く全手法で改善（ETTh1のRidgeで3.9\%→9.1\%）。物理モデル単体のみ両変電所で悪化しており、計画情報の活かし方はモデル依存
   \end{itemize}
 \end{frame}
 
@@ -226,24 +227,24 @@
 \settag{結果 ② モデルの複雑さ}
 \begin{frame}{複雑なモデルほど良いわけではなく、GBM・LSTM・MLPは年次ドリフトの下で線形モデルを上回れなかった}
   \scriptsize
-  \renewcommand{\arraystretch}{1.15}
+  \renewcommand{\arraystretch}{1.08}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{4.2cm} c c X}
     \toprule
     手法（C：計画あり） & ETTh1 & ETTh2 & 解釈 \\
     \midrule
-    Ridge（物理特徴量） & \hlg{+9.1\%*} & \hlg{+4.8\%*} & 最良。少数パラメータで外挿に強い \\
-    アンサンブル（Ridge+GBM+Hybrid） & +6.1\%* & \hlg{+5.1\%*} & 安定。ETTh2で最良だが差は小 \\
-    生ウィンドウ線形（DLinear型） & +5.3\%* & +2.9\% & 特徴量設計なしでも健闘（Zeng et al. 2023と整合） \\
-    LSTM（生系列） & +3.5\% & −2.7\% & 系列モデルの優位性は確認できず \\
-    GBM／頑健化GBM／ピーク重視GBM & −0.5〜+1.8\% & −0.7〜+4.1\% & 計画なし（B）では −5〜−12\%。水準の変化に弱い \\
-    物理＋GBMハイブリッド & −7.9\%* & +1.9\% & 物理モデルの誤差を学習しきれず \\
-    MLP & −45\%* & −17\%* & 過学習。データ量に対して不安定 \\
+    Ridge（物理特徴量） & \hlg{+9.1\%*} & +4.8\% & ETTh1で最良。少数パラメータで外挿に強い \\
+    アンサンブル（Ridge+GBM+Hybrid） & +6.4\% & \hlg{+5.8\%} & ETTh2で最良だがRidgeとの差は1ポイント \\
+    MLP（64-32） & +5.9\% & +3.9\% & 線形モデルに届かず \\
+    生ウィンドウ線形（DLinear型） & +5.3\% & +2.9\% & 特徴量設計なしでも健闘（Zeng et al. 2023と整合） \\
+    LSTM（生系列） & +3.5\% & −0.3\% & 系列モデルの優位性は確認できず \\
+    GBM／頑健化GBM／ピーク重視GBM & −2.6〜+1.3\% & +0.5〜+2.3\% & 計画なし（B）では −4〜−8\%。水準の変化に弱い \\
+    物理＋GBMハイブリッド & −7.2\% & +2.0\% & 物理モデルの誤差を学習しきれず \\
     直近7日の誤差による補正（+BC） & 悪化 & 悪化 & 誤差は持続的な偏りでなく天候由来の変動 \\
     \bottomrule
   \end{tabularx}
   \vspace{0.15cm}
-  \softbox{}{\scriptsize\textbf{示唆}：精度の上限を決めているのはモデルの表現力ではなく\hl{入力情報（外気温の欠如）}。モデルを複雑にするより、データを追加する方が効果的と判断した。}
-  \source{数値は24時間先MAEの「現在値維持」比削減率。* は Diebold–Mariano 検定 p<0.05。}
+  \softbox{}{\scriptsize\textbf{示唆}：精度を制約しているのはモデルの表現力より\hl{入力情報（外気温の欠如）}と考えられる。モデルの複雑化よりデータ追加を優先すべき（外気温追加で検証する仮説）。}
+  \source{数値は24時間先MAEの「現在値維持」比削減率。* は Diebold–Mariano 検定 p<0.05（Holm法で各変電所の比較全体を補正）。}
 \end{frame}
 
 % ------------------------------------------------------------------ 10 horizons
@@ -261,7 +262,7 @@
 
 % ------------------------------------------------------------------ 11 alerts
 \settag{業務価値 ① 過熱の事前警告}
-\begin{frame}{警告の余裕幅を4℃とすれば、過熱開始の87\%を約21時間前に予告でき、誤報は月約11時間に抑えられる}
+\begin{frame}{警告の余裕幅を4℃とすれば、過熱開始の80\%を約23時間前に予告でき、誤報は月約10時間に抑えられる}
   \begin{columns}[T]
     \begin{column}{0.50\textwidth}
       \includegraphics[width=\textwidth]{res_alert_tradeoff}
@@ -274,26 +275,27 @@
         警告方式 & 事前警告率 & 誤報（時間/月） \\
         \midrule
         現行：閾値監視 & 0\% & -- \\
-        予測（B）＋余裕4℃ & 87\% & 14.0 \\
-        \textbf{予測（C）＋余裕4℃} & \hlg{87\%} & \hlg{10.7} \\
-        予測（C）＋余裕3℃ & 60\% & 6.8 \\
-        90\%区間の上限 & 100\% & 31.2 \\
+        予測（B）＋余裕4℃ & 87\% & 12.9 \\
+        \textbf{予測（C）＋余裕4℃} & \hlg{80\%} & \hlg{10.2} \\
+        予測（C）＋余裕5℃ & 93\% & 15.8 \\
+        90\%区間の上限 & 100\% & 31.6 \\
         \bottomrule
       \end{tabular}
-      \vspace{0.2cm}
-      \begin{itemize}\setlength{\itemsep}{2pt}
+      \vspace{0.1cm}
+      \begin{itemize}\setlength{\itemsep}{1pt}
         \item 余裕幅は\hl{運用者が選ぶつまみ}。誤報コストと見逃しコストで決める
-        \item 負荷計画は同じ検知率を\hl{少ない誤報}で実現する
-        \item ETTh1は評価年に代理警報値へ一度も達せず、評価対象外
+        \item 4℃は\hl{評価年の曲線から読んだ探索的な値}。シャドー運用で固定・検証する
+        \item 警告への負荷計画の効果は小さい
+        \item ETTh1は代理警報値に達せず評価対象外
       \end{itemize}
     \end{column}
   \end{columns}
-  \source{ETTh2、過熱開始＝24時間以上の平常後に代理警報値（46.4、開発期間95パーセンタイル）を超えた時点、計15件。少数のため参考値。}
+  \source{ETTh2・アンサンブル。過熱開始＝24時間以上の平常後に代理警報値（46.4℃）を超えた時点、計15件。真値に欠測を含む警告は判定不能（620件中13件）。}
 \end{frame}
 
 % ------------------------------------------------------------------ 12 uncertainty
 \settag{業務価値 ② 不確実性の提示}
-\begin{frame}{分位点回帰の「90\%区間」は実際には77〜84\%しか当たらなかったが、コンフォーマル補正で90\%に校正できた}
+\begin{frame}{分位点回帰の「90\%区間」は実際には75〜84\%しか当たらなかったが、コンフォーマル補正で90\%に校正できた}
   \begin{columns}[T]
     \begin{column}{0.62\textwidth}
       \includegraphics[width=\textwidth]{res_example_forecast}
@@ -306,24 +308,24 @@
         & 補正前 & \textbf{CQR後} \\
         \midrule
         被覆率 ETTh1 & 84\% & \hlg{90\%} \\
-        被覆率 ETTh2 & 77\% & \hlg{90\%} \\
-        区間幅 ETTh1 & 6.0℃ & 7.2℃ \\
-        区間幅 ETTh2 & 9.3℃ & 12.7℃ \\
+        被覆率 ETTh2 & 75\% & \hlg{91\%} \\
+        区間幅 ETTh1 & 6.0℃ & 7.3℃ \\
+        区間幅 ETTh2 & 9.0℃ & 13.0℃ \\
         \bottomrule
       \end{tabular}
       \vspace{0.2cm}
       \begin{itemize}\setlength{\itemsep}{2pt}
         \item 名目どおりの信頼度を\hl{実測で確認}してから保全判断に使うべき
-        \item 区間が広い（ETTh2で約±6℃）のは外気温不在による本質的な不確実性
+        \item 区間が広い（ETTh2で約±6.5℃）のは外気温不在による不確実性と考えられる
       \end{itemize}
     \end{column}
   \end{columns}
-  \source{CQR：Romano et al. (2019)。各分割で直近60日を校正用に確保。数値は計画あり（C）。}
+  \source{CQR：Romano et al. (2019)。各分割で再学習時点までの直近60日を校正用に確保。数値は計画あり（C）。時系列では被覆は理論保証でなく実測値。センサ固着で現在値予測に切り替えた時間は区間なし（集計対象外）。}
 \end{frame}
 
 % ------------------------------------------------------------------ 13 robustness
 \settag{業務価値 ③ 負荷計画の品質条件}
-\begin{frame}{負荷計画の誤差が10\%程度までなら効果は残るが、20\%では両変電所とも計画なし予測を下回るため、計画精度が導入条件となる}
+\begin{frame}{負荷計画の効果は誤差5〜10\%で薄れ、20\%では両変電所とも計画なし予測を下回るため、計画精度が導入条件となる}
   \begin{columns}[T]
     \begin{column}{0.55\textwidth}
       \includegraphics[width=\textwidth]{res_load_noise}
@@ -331,24 +333,24 @@
     \begin{column}{0.43\textwidth}
       \footnotesize
       \begin{itemize}\setlength{\itemsep}{3pt}
-        \item 実負荷に日次バイアス＋時間ノイズ（σ）を加えて「不完全な計画」を模擬
-        \item ETTh1：スキル 9.1\%（誤差0）→ 7.1\%（10\%）→ \hlb{1.4\%（20\%）}。計画なし（3.8\%）を下回る
-        \item ETTh2：4.8\% → 4.3\% → \hlb{2.9\%（20\%）}。計画なし（4.1\%）を下回る
-        \item \hl{要件}：日前負荷計画の誤差がおおむね10\%以内であること。満たせない場合は計画なし（B）で運用
+        \item 予測時点以降の負荷にのみ日次バイアス＋時間ノイズ（σ）を加えて「不完全な計画」を模擬（5回の乱数の平均）
+        \item ETTh1：スキル 9.1\%（誤差0）→ 7.2\%（10\%）→ \hlb{2.0\%（20\%）}。計画なし（3.9\%）を下回る
+        \item ETTh2：4.8\% → 4.3\%（10\%、計画なし4.2\%と同等）→ \hlb{3.1\%（20\%）}
+        \item \hl{要件}：日前負荷計画の誤差がおおむね5〜10\%以内であること。満たせない場合は計画なし（B）で運用
       \end{itemize}
     \end{column}
   \end{columns}
-  \source{学習時は真の負荷を使用し、評価時のみ計画誤差を付与（運用時の状況を再現）。モデル：Ridge（C）。}
+  \source{学習時は真の負荷を使用し、評価時のみ計画誤差を付与（過去の実測値は変えない）。帯は5回の乱数の最小〜最大。モデル：Ridge（C）。}
 \end{frame}
 
 % ------------------------------------------------------------------ 14 failure analysis
 \settag{課題分析}
 \begin{frame}{誤差は季節の変わり目と高温時に集中し、ETTh2の最高温域ではモデルが「現在値維持」より誤差が大きい}
-  \centering\includegraphics[width=\textwidth,height=4.1cm,keepaspectratio]{res_monthly}\par\raggedright
+  \centering\includegraphics[width=\textwidth,height=3.6cm,keepaspectratio]{res_monthly}\par\raggedright
   \footnotesize
   \begin{itemize}\setlength{\itemsep}{1pt}
-    \item 高温時（開発期間の上位10\%）のMAE（ETTh2）：現在値維持 \textbf{2.69℃} に対し Ridge（C）3.07℃、ピーク重視GBM 3.10℃。\hlb{ピークを平均側へ引き戻す傾向}
-    \item 唯一LSTM（B）が2.56℃と下回り、系列モデルは極値で有望。高温域専用モデルや外気温の追加で改善余地
+    \item 高温時（開発期間の上位10\%）のMAE（ETTh2）：現在値維持 \textbf{2.69℃} に対し Ridge（C）3.04℃、ピーク重視GBM 3.07℃。\hlb{ピークを平均側へ引き戻す傾向}
+    \item 高温域で現在値維持を下回るモデルはない。最も近いのはLSTM（C）2.76℃・MLP（C）2.79℃。高温域専用モデルや外気温の追加で改善余地
     \item 警告では余裕幅でこの過小予測を補っている（p.12）
   \end{itemize}
 \end{frame}
@@ -360,16 +362,16 @@
     \begin{column}{0.49\textwidth}
       \softbox{}{\footnotesize\textbf{ルールベースのデータ品質監視：有効}
       \begin{itemize}\setlength{\itemsep}{1pt}
-        \item 固着・スパイク・31日凍結・負荷バランス崩れを過去データのみで検知
+        \item 負荷センサ固着・油温スパイク・全項目凍結を過去データのみで検知（固着は継続24h／12hで判定）。負荷バランスは記述のみで警報閾値は未設定
         \item 本データで実際に\hl{43日間の固着}等を発見（p.4）
-        \item 検知時は予測を安全側（現在値維持）に切替
+        \item 負荷センサ固着時は予測を現在値維持に切替（継続性のための代替で、安全側とは限らない）
       \end{itemize}}
     \end{column}
     \begin{column}{0.49\textwidth}
       \softbox{}{\footnotesize\textbf{モデル残差による冷却異常検知：未達}
       \begin{itemize}\setlength{\itemsep}{1pt}
         \item 負荷から期待油温を推定し、6時間平均の差で警報（Djamali \& Tenbohlen、CIGREのデジタルツイン方式）
-        \item 擬似故障（+3〜8℃）の検知率は\hlb{10\%以下}。期待値モデルが故障を「追従」してしまい、差が警報閾値（正常時の99.5\%点：1.5〜1.7℃）に届かない
+        \item 擬似故障（+3〜8℃）の検知率は\hlb{0\%}（両変電所180件中0件）。期待値モデルが故障を「追従」してしまい、差が警報閾値（正常時の99.5\%点：1.5〜1.7℃）に届かない
         \item 12時間で+20℃の急変はETTh1で全件検知（ETTh2は10\%）
       \end{itemize}}
     \end{column}
@@ -377,7 +379,7 @@
   \vspace{0.2cm}
   \footnotesize
   \textbf{結論}：異常検知は「外気温」と「冷却装置の運転状態」を入力に加えて再評価すべき。現状データで導入するのはデータ品質監視に限定する。
-  \source{擬似故障：12時間で線形上昇しその後36時間維持、各条件30件。閾値は開発期間の正常窓における99.5パーセンタイル。}
+  \source{擬似故障：12時間で上昇し36時間維持、各30件・全条件で同じ時刻。故障なしで警報・異常がある区間は除外（対照）。}
 \end{frame}
 
 % ------------------------------------------------------------------ 16 limitations
@@ -389,7 +391,7 @@
     \toprule
     限界 & 影響 & 解消に必要なもの \\
     \midrule
-    外気温データなし & 日内変動の主因を説明できず、精度と異常検知の上限を規定 & 最寄り気象観測点の時別気温（設置場所の情報） \\
+    外気温データなし & 日内変動の主因と推定される要因を入力できず、精度と異常検知を制約していると考えられる & 最寄り気象観測点の時別気温（設置場所の情報） \\
     実警報値・故障履歴なし & 代理警報値での評価に留まり、業務価値（回避損失）を金額換算できない & 運用中の警報設定、過去の保全記録 \\
     評価イベントが少ない & 過熱開始15件のみ。警告率の不確実性が大きい & 変圧器・期間の追加 \\
     変圧器2台のみ & 他設備への汎化は未検証。2台で挙動（時定数・品質）が大きく異なる & 設備台帳（冷却方式・定格）と複数台データ \\
@@ -403,13 +405,13 @@
 \begin{frame}{外気温の追加と3か月のシャドー運用を経て、合格基準を満たせば予測アラートを本導入することを提案する}
   \centering
   \begin{tikzpicture}[font=\scriptsize, node distance=0.35cm,
-      stepbox/.style={draw=accent, thick, fill=soft, rounded corners=2pt, text width=4.1cm, minimum height=2.9cm, align=left, inner sep=5pt}]
+      stepbox/.style={draw=accent, thick, fill=soft, rounded corners=2pt, text width=3.95cm, minimum height=2.9cm, align=left, inner sep=5pt}]
     \node[stepbox] (a) {\textbf{\color{accent}Step 1（1か月）\\データ拡充}\\[3pt]
       ・外気温（気象データ）を連携\\・実警報値・保全記録の共有\\・データ品質監視を先行導入\\[3pt]
-      \textbf{合格基準}：外気温追加でMAEが現状比10\%以上改善};
+      \textbf{合格基準（案）}：外気温追加でMAEが現状比10\%以上改善};
     \node[stepbox, right=of a] (b) {\textbf{\color{accent}Step 2（3か月）\\シャドー運用}\\[3pt]
       ・予測と警告を運用画面に並行表示（判断には使わない）\\・誤報・見逃しを記録\\[3pt]
-      \textbf{合格基準}：過熱の80\%以上を12時間前までに警告、誤報は月10件以下};
+      \textbf{合格基準（案）}：過熱の80\%以上を12時間前までに警告、誤報は月10時間以下};
     \node[stepbox, right=of b] (c) {\textbf{\color{accent}Step 3\\本導入・拡大}\\[3pt]
       ・警告ルールを保全手順に組込\\・異常検知（冷却系）を再評価\\・対象変圧器を拡大\\[3pt]
       \textbf{継続監視}：月次で被覆率・誤差・ドリフトを確認、再学習};
@@ -419,7 +421,7 @@
   \vspace{0.3cm}
   \footnotesize
   \begin{itemize}
-    \item 本PoCのコード（データ品質判定・特徴量・ロール検証・区間校正・警告シミュレーション）はそのまま Step 2 の評価基盤として再利用できる
+    \item 本PoCのコード（データ品質判定・特徴量・ロール検証・区間校正・警告シミュレーション）は Step 2 の評価基盤として再利用できる。特徴量は正解値なしで生成可能（運用システムへの接続は未実装）
   \end{itemize}
 \end{frame}
 
@@ -437,7 +439,7 @@
     Ridge & 物理特徴量（S²、S²の指数平滑3/12/48h、油温変化、カレンダー）。正則化係数は開発期間で選択 \\
     GBM／頑健化／ピーク重視 & HistGradientBoosting。頑健化：油温水準を除外し直近データを重視（半減期180日）。ピーク重視：上位10\%を3倍重み \\
     ハイブリッド & グレーボックスの残差をGBMで学習 \\
-    MLP／LSTM & MLP（64-32）。LSTM：過去72時間の生系列＋（C）翌24時間の計画、早期終了 \\
+    MLP／LSTM & MLP（64-32）。LSTM：過去72時間の生系列＋（C）翌24時間の計画。いずれも学習期間末尾を時系列順に検証用とした早期終了 \\
     生ウィンドウ線形 & 過去168時間の油温・S²（＋計画24時間）にRidge（DLinear型） \\
     アンサンブル／+BC & Ridge・頑健化GBM・ハイブリッドの等重み平均。+BC：直近7日の誤差平均を差し引く \\
     CQR & 分位点GBM（5\%・95\%）＋コンフォーマル補正 \\
@@ -451,9 +453,9 @@
   \begin{enumerate}\setlength{\itemsep}{0pt}
     \item H. Zhou et al. Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting. AAAI 2021.（ETTデータセット, CC BY-ND 4.0）
     \item IEC 60076-7:2018 Loading guide for mineral-oil-immersed power transformers. ／ IEEE Std C57.91-2011.
-    \item D. Tembo et al. Data-Driven vs Traditional Approaches to Power Transformer's Top-Oil Temperature Estimation. arXiv:2501.16831, 2025.
+    \item F. Tembo et al. Data-Driven vs Traditional Approaches to Power Transformer's Top-Oil Temperature Estimation. arXiv:2501.16831, 2025.
     \item M. Djamali, S. Tenbohlen. Malfunction Detection of the Cooling System in Air-Forced Power Transformers Using Online Thermal Monitoring. IEEE Trans. Power Delivery, 2017.
-    \item CIGRE. Digital twins for power transformers: concept and future perspectives. Electra, 2026.
+    \item CIGRE Technical Brochure 995. Digital twins for power transformers: concept and future perspectives. 2026.
     \item H. Hewamalage, K. Ackermann, C. Bergmeir. Forecast evaluation for data scientists: common pitfalls and best practices. Data Min. Knowl. Disc. 37, 2023.
     \item Y. Cui, J. Xie, K. Zheng. Historical Inertia: A Neglected but Powerful Baseline for Long Sequence Time-Series Forecasting. CIKM 2021.
     \item A. Zeng et al. Are Transformers Effective for Time Series Forecasting? AAAI 2023.

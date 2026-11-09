@@ -6,7 +6,8 @@ import pytest
 
 from ettpoc import config as C
 from ettpoc.data import clean_ot_causal, quality_flags
-from ettpoc.features import build
+from ettpoc.experiment import tuning_split
+from ettpoc.features import S2_HALFLIVES, apparent_power_sq, build, build_features
 
 
 def scramble_after(df: pd.DataFrame, cut: pd.Timestamp) -> pd.DataFrame:
@@ -54,3 +55,25 @@ def test_target_is_the_future_change(station):
     t = X.index[100]
     expected = station.OT[t + pd.Timedelta(hours=C.H)] - station.OT[t]
     assert y[t] == pytest.approx(expected)
+
+
+def test_noisy_plan_leaves_measured_history_unchanged(station):
+    exact = build_features(station, station.OT, "C")
+    noisy = build_features(station, station.OT, "C", load_sigma=0.2)
+    history = [c for c in exact.columns if c.endswith("_now") or c.startswith("ot_")]
+    pd.testing.assert_frame_equal(exact[history], noisy[history])
+    # Without plan error the planned EWMA equals the EWMA of the actual load at T.
+    s2 = apparent_power_sq(station)
+    for hl in S2_HALFLIVES:
+        actual_T = s2.ewm(halflife=hl, adjust=False).mean().shift(-C.H).reindex(exact.index)
+        np.testing.assert_allclose(exact[f"s2_ewm{hl}_T"], actual_T, rtol=1e-9)
+
+
+def test_tuning_uses_only_labels_observed_before_evaluation(development_station):
+    df = development_station
+    _, _, meta = build(df, df.OT, quality_flags(df), "B")
+    train, val = tuning_split(df, meta)
+    tt = meta.target_time
+    assert tt[train].max() <= pd.Timestamp(C.TUNE_VAL_START) - pd.Timedelta(hours=C.H)
+    assert tt[val].min() >= pd.Timestamp(C.TUNE_VAL_START)
+    assert tt[val].max() <= C.DEV_END

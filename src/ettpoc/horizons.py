@@ -14,8 +14,8 @@ import numpy as np
 import pandas as pd
 
 from . import config as C
-from .data import clean_ot_causal, load_station, quality_flags
-from .evaluation import monthly_folds
+from .data import bad_targets_known_at, clean_ot_causal, load_station, quality_flags, valid_at
+from .evaluation import fold_masks, label_cutoff, monthly_folds
 from .experiment import recency_weights, tune
 from .features import ABSOLUTE_LEVEL_COLS, build
 from .models import make_gbm, make_ridge
@@ -35,21 +35,23 @@ def run() -> pd.DataFrame:
             for fr in C.FRAMINGS:
                 X, y, meta = build(df, ot, flags, fr, h=h)
                 tt = meta.target_time
-                usable = ~meta.bad_target & ~meta.input_flagged
-                params, _ = tune(X, y, meta)
+                params, _ = tune(df, X, y, meta, h)
                 rel = [c for c in X.columns if c not in ABSOLUTE_LEVEL_COLS]
                 # Seasonal naive OT(T - 24 h) as a change from OT(t); persistence for h >= 24.
                 seasonal = (ot.shift(max(24 - h, 0)) - ot).reindex(X.index)
                 for start, end in monthly_folds():
-                    train = usable & (tt < start)
-                    test = (tt >= start) & (tt < end) & ~meta.bad_target
+                    cutoff = label_cutoff(start, h)
+                    available, test = fold_masks(tt, start, end, h)
+                    label_ok = valid_at(bad_targets_known_at(df, cutoff), tt)
+                    train = available & label_ok & ~meta.input_flagged
+                    test = test & ~meta.bad_target
                     fallback = meta.input_flagged[test].to_numpy()
                     y_test = y[test].to_numpy()
                     ridge = make_ridge(params["Ridge"]["alpha"]).fit(X[train], y[train])
                     delta = np.where(fallback, 0, ridge.predict(X[test]))
                     abs_errors[f"Ridge ({fr})"].append(np.abs(delta - y_test))
                     if fr == "C":
-                        w = recency_weights(tt[train], start)
+                        w = recency_weights(tt[train], cutoff)
                         gbm = make_gbm(params["GBM"]).fit(
                             X.loc[train, rel], y[train], sample_weight=w
                         )

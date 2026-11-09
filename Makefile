@@ -1,6 +1,8 @@
 PY = .venv/bin/python
 
 .PHONY: setup eda experiment neural horizons anomaly report all slides test lint
+# The pipeline stages read each other's outputs, so they must never run in parallel.
+.NOTPARALLEL:
 
 setup:
 	python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt && .venv/bin/pip install --no-deps -e .

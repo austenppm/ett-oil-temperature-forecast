@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from . import config as C
-from .data import load_station, quality_flags
+from .data import development, load_station, quality_flags
 from .features import apparent_power_sq
 from .plotting import INK, MUTED, STATION_COLORS, plt, save
 
@@ -153,8 +153,8 @@ def summary_table(dfs, flags, lag_rows):
     lag = {n: (hl, r) for n, hl, r in lag_rows}
     for name, df in dfs.items():
         f = flags[name]
-        dev = df.OT[: C.EVAL_START]
-        ev = df.OT[C.EVAL_START :]
+        dev = df.OT[df.index < C.EVAL_START]  # development year (descriptive)
+        ev = df.OT[df.index >= C.EVAL_START]
         rows.append(
             {
                 "station": name,
@@ -166,7 +166,7 @@ def summary_table(dfs, flags, lag_rows):
                 "OT_mean_eval_year": ev.mean(),
                 "OT_max_dev_year": dev.max(),
                 "OT_max_eval_year": ev.max(),
-                "alert_threshold_q95_dev": dev.quantile(C.ALERT_QUANTILE),
+                "alert_threshold_q95_dev": development(df.OT).quantile(C.ALERT_QUANTILE),
                 "share_hours_load_stuck": f.load_stuck.mean(),
                 "ot_spike_hours": int(f.ot_spike.sum()),
                 "ot_stuck_hours": int(f.ot_stuck.sum()),

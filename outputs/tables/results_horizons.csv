@@ -3,59 +3,59 @@ ETTh1,1,Ridge (B),0.4854,0.0301
 ETTh1,1,Persistence,0.5004,0.0
 ETTh1,1,Seasonal naive,1.7583,-2.5137
 ETTh1,1,Ridge (C),0.483,0.0349
-ETTh1,1,GBM-robust (C),0.4751,0.0505
+ETTh1,1,GBM-robust (C),0.4826,0.0356
 ETTh1,3,Ridge (B),0.8198,0.097
 ETTh1,3,Persistence,0.9079,0.0
 ETTh1,3,Seasonal naive,1.7583,-0.9367
-ETTh1,3,Ridge (C),0.8086,0.1093
-ETTh1,3,GBM-robust (C),0.7899,0.13
+ETTh1,3,Ridge (C),0.8087,0.1093
+ETTh1,3,GBM-robust (C),0.7904,0.1294
 ETTh1,6,Ridge (B),1.1287,0.1475
 ETTh1,6,Persistence,1.324,0.0
 ETTh1,6,Seasonal naive,1.7583,-0.328
-ETTh1,6,Ridge (C),1.1001,0.1691
-ETTh1,6,GBM-robust (C),1.069,0.1926
+ETTh1,6,Ridge (C),1.1001,0.1692
+ETTh1,6,GBM-robust (C),1.0871,0.1789
 ETTh1,12,Ridge (B),1.407,0.192
 ETTh1,12,Persistence,1.7412,0.0
 ETTh1,12,Seasonal naive,1.7583,-0.0098
-ETTh1,12,Ridge (C),1.3569,0.2207
-ETTh1,12,GBM-robust (C),1.3944,0.1992
-ETTh1,24,Ridge (B),1.6908,0.0384
+ETTh1,12,Ridge (C),1.3567,0.2208
+ETTh1,12,GBM-robust (C),1.3903,0.2015
+ETTh1,24,Ridge (B),1.6904,0.0387
 ETTh1,24,Persistence,1.7583,0.0
 ETTh1,24,Seasonal naive,1.7583,0.0
-ETTh1,24,Ridge (C),1.5977,0.0914
-ETTh1,24,GBM-robust (C),1.7422,0.0092
-ETTh1,48,Ridge (B),2.1223,0.0947
+ETTh1,24,Ridge (C),1.5979,0.0913
+ETTh1,24,GBM-robust (C),1.7451,0.0076
+ETTh1,48,Ridge (B),2.1213,0.0952
 ETTh1,48,Persistence,2.3445,0.0
 ETTh1,48,Seasonal naive,2.3445,0.0
-ETTh1,48,Ridge (C),1.9962,0.1485
-ETTh1,48,GBM-robust (C),2.2067,0.0587
+ETTh1,48,Ridge (C),1.9965,0.1484
+ETTh1,48,GBM-robust (C),2.2194,0.0534
 ETTh2,1,Ridge (B),0.8016,0.2843
 ETTh2,1,Persistence,1.12,0.0
 ETTh2,1,Seasonal naive,3.2462,-1.8983
 ETTh2,1,Ridge (C),0.8014,0.2845
-ETTh2,1,GBM-robust (C),0.5279,0.5287
+ETTh2,1,GBM-robust (C),0.5299,0.5269
 ETTh2,3,Ridge (B),1.6285,0.3978
 ETTh2,3,Persistence,2.7041,0.0
 ETTh2,3,Seasonal naive,3.2462,-0.2004
-ETTh2,3,Ridge (C),1.6231,0.3998
-ETTh2,3,GBM-robust (C),1.263,0.5329
-ETTh2,6,Ridge (B),2.5175,0.2245
+ETTh2,3,Ridge (C),1.6234,0.3996
+ETTh2,3,GBM-robust (C),1.2624,0.5332
+ETTh2,6,Ridge (B),2.5181,0.2243
 ETTh2,6,Persistence,4.4941,-0.3844
 ETTh2,6,Seasonal naive,3.2462,0.0
-ETTh2,6,Ridge (C),2.5054,0.2282
-ETTh2,6,GBM-robust (C),2.0673,0.3632
-ETTh2,12,Ridge (B),2.9818,0.0814
+ETTh2,6,Ridge (C),2.5062,0.2279
+ETTh2,6,GBM-robust (C),2.0709,0.362
+ETTh2,12,Ridge (B),2.9728,0.0842
 ETTh2,12,Persistence,5.8994,-0.8174
 ETTh2,12,Seasonal naive,3.2462,0.0
-ETTh2,12,Ridge (C),2.9821,0.0813
-ETTh2,12,GBM-robust (C),3.0362,0.0647
-ETTh2,24,Ridge (B),3.113,0.041
+ETTh2,12,Ridge (C),2.9769,0.083
+ETTh2,12,GBM-robust (C),3.0174,0.0705
+ETTh2,24,Ridge (B),3.1094,0.0421
 ETTh2,24,Persistence,3.2462,0.0
 ETTh2,24,Seasonal naive,3.2462,0.0
-ETTh2,24,Ridge (C),3.092,0.0475
-ETTh2,24,GBM-robust (C),3.2685,-0.0069
-ETTh2,48,Ridge (B),3.9218,0.1051
+ETTh2,24,Ridge (C),3.0891,0.0484
+ETTh2,24,GBM-robust (C),3.2313,0.0046
+ETTh2,48,Ridge (B),3.9238,0.1047
 ETTh2,48,Persistence,4.3825,0.0
 ETTh2,48,Seasonal naive,4.3825,0.0
-ETTh2,48,Ridge (C),3.9025,0.1095
-ETTh2,48,GBM-robust (C),4.1541,0.0521
+ETTh2,48,Ridge (C),3.8976,0.1107
+ETTh2,48,GBM-robust (C),4.1407,0.0552

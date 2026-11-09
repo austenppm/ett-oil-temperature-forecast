@@ -10,9 +10,9 @@ come from our own experiments unless a reference is cited next to them.
 ## Transformer thermal physics and condition monitoring
 3. IEC 60076-7:2018. *Power transformers – Part 7: Loading guide for mineral-oil-immersed power transformers* (first-order top-oil thermal model; losses ∝ load current²).
 4. IEEE Std C57.91-2011. *IEEE Guide for Loading Mineral-Oil-Immersed Transformers and Step-Voltage Regulators.*
-5. D. Tembo, F. Bragone, T. Laneryd, M. Barreau, K. Morozovska. *Data-Driven vs Traditional Approaches to Power Transformer's Top-Oil Temperature Estimation.* 2025. https://arxiv.org/abs/2501.16831 (data-driven models vs IEC 60076-7; quantile intervals under-cover; recommends conformalized quantile regression).
+5. F. Tembo, F. Bragone, T. Laneryd, M. Barreau, K. Morozovska. *Data-Driven vs Traditional Approaches to Power Transformer's Top-Oil Temperature Estimation.* 2025. https://arxiv.org/abs/2501.16831 (data-driven models vs IEC 60076-7; quantile intervals under-cover; recommends conformalized quantile regression).
 6. M. Djamali, S. Tenbohlen. *Malfunction Detection of the Cooling System in Air-Forced Power Transformers Using Online Thermal Monitoring.* IEEE Trans. Power Delivery, 2017 (residual between calculated and measured top-oil temperature for fault detection).
-7. CIGRE Technical Brochure. *Digital twins for power transformers: concept and future perspectives.* Electra, 2026. https://electra.cigre.org/347-august-2026/technical-brochures/digital-twins-for-power-transformers-concept-and-future-perspectives
+7. CIGRE Technical Brochure 995. *Digital twins for power transformers: concept and future perspectives.* 2026. https://www.e-cigre.org/publications/detail/995-digital-twins-for-power-transformers-concept-and-future-perspectives.html
 
 ## Forecasting methodology and evaluation
 8. H. Hewamalage, K. Ackermann, C. Bergmeir. *Forecast evaluation for data scientists: common pitfalls and best practices.* Data Mining and Knowledge Discovery 37, 2023. https://doi.org/10.1007/s10618-022-00894-5 (naive benchmarks, rolling-origin evaluation, leakage, MAPE near zero, ML models do not extrapolate).

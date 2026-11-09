@@ -1,13 +1,17 @@
 """Loading the ETT data and flagging data-quality problems.
 
 Two kinds of flags are produced:
-- retrospective flags (use the whole series) -> only for EDA and for deciding which
-  target values are trustworthy enough to score against;
-- causal flags (use data up to the current hour only) -> safe to use as model inputs
-  or for run-time fallbacks.
+- retrospective flags (use the whole series given) -> for EDA and for deciding which
+  target values are trustworthy enough to score against. To select training rows at a
+  refit time, compute them on the data observed up to that time (`bad_targets_known_at`);
+- causal flags (use data up to the current hour only) -> safe to use as model inputs,
+  for run-time fallbacks and for online bias correction.
 """
 
 import hashlib
+import os
+import tempfile
+import time
 import urllib.request
 from pathlib import Path
 
@@ -17,16 +21,43 @@ import pandas as pd
 from . import config as C
 
 USEFUL_LOADS = ("HUFL", "MUFL", "LUFL")
+DOWNLOAD_ATTEMPTS = 3
+DOWNLOAD_TIMEOUT_S = 60
+
+
+def sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def download(url: str, path: Path, expected_sha256: str) -> None:
+    """Download to a temporary file, verify it, then move it into place (bounded retries)."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    for attempt in range(1, DOWNLOAD_ATTEMPTS + 1):
+        fd, tmp = tempfile.mkstemp(dir=path.parent, suffix=".part")
+        os.close(fd)
+        try:
+            with urllib.request.urlopen(url, timeout=DOWNLOAD_TIMEOUT_S) as r:
+                Path(tmp).write_bytes(r.read())
+            if sha256(Path(tmp)) != expected_sha256:
+                raise ValueError(f"downloaded file from {url} has an unexpected SHA-256")
+            os.replace(tmp, path)
+            return
+        except (OSError, ValueError) as err:
+            if attempt == DOWNLOAD_ATTEMPTS:
+                raise
+            print(f"  download attempt {attempt} failed ({err}); retrying")
+            time.sleep(2 * attempt)
+        finally:
+            Path(tmp).unlink(missing_ok=True)
 
 
 def ensure_csv(name: str) -> Path:
     """Return the local CSV path, downloading from upstream if missing; verify SHA-256."""
     path = C.DATA_DIR / f"{name}.csv"
     if not path.exists():
-        C.DATA_DIR.mkdir(parents=True, exist_ok=True)
         print(f"Downloading {name} from {C.UPSTREAM_URL.format(name=name)}")
-        urllib.request.urlretrieve(C.UPSTREAM_URL.format(name=name), path)
-    digest = hashlib.sha256(path.read_bytes()).hexdigest()
+        download(C.UPSTREAM_URL.format(name=name), path, C.SHA256[name])
+    digest = sha256(path)
     if digest != C.SHA256[name]:
         raise ValueError(f"{path} has unexpected SHA-256 {digest}; expected {C.SHA256[name]}")
     return path
@@ -39,6 +70,11 @@ def load_station(name: str) -> pd.DataFrame:
     if not df.index.is_unique or (steps != pd.Timedelta(hours=1)).any():
         raise ValueError(f"{name}: expected a gap-free hourly index")
     return df
+
+
+def development(s: pd.Series) -> pd.Series:
+    """The part of a time-indexed series observed by the first evaluation issue time."""
+    return s[s.index <= C.DEV_END]
 
 
 def run_length(s: pd.Series) -> pd.Series:
@@ -102,3 +138,29 @@ def clean_ot_causal(ot: pd.Series) -> pd.Series:
         if abs(values[i] - ref) > C.SPIKE_DEG and not confirmed:
             accepted[i] = accepted[i - 1]
     return pd.Series(accepted, index=ot.index, name="OT_clean")
+
+
+def valid_at(bad: pd.Series, times) -> np.ndarray:
+    """Whether the reading at each of `times` is valid per `bad`; times not covered are not."""
+    return ~bad.reindex(pd.DatetimeIndex(times), fill_value=True).to_numpy(dtype=bool)
+
+
+def bad_targets_known_at(df: pd.DataFrame, cutoff: pd.Timestamp) -> pd.Series:
+    """Retrospective `bad_target` as it could be computed at `cutoff` (data up to it only).
+
+    Used to choose training rows at a refit: whether a recent reading is part of a stuck
+    run or a spike may only become clear later, so the full-series labels must not be used.
+    """
+    return quality_flags(df[df.index <= cutoff]).bad_target
+
+
+def bad_target_causal(df: pd.DataFrame) -> pd.Series:
+    """Whether reading OT(T) looks invalid using data up to T only.
+
+    Stuck OT, a reading rejected by the causal spike filter, or all channels flat. Known at
+    T, so it can be used online, e.g. to exclude errors from a running bias estimate.
+    """
+    ot_stuck = run_length(df.OT) >= C.STUCK_OT_HOURS
+    spike = clean_ot_causal(df.OT) != df.OT
+    flat = pd.concat([run_length(df[c]) >= C.STUCK_OT_HOURS for c in df.columns], axis=1)
+    return (ot_stuck | spike | flat.all(axis=1)).rename("bad_target_causal")

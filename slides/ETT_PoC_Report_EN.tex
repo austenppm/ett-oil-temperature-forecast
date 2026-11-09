@@ -19,10 +19,10 @@
 
 % ------------------------------------------------------------------ 1 summary
 \settag{Executive summary}
-\begin{frame}{Forecasts flag 87\% of overheating onsets about 21 h ahead but improve accuracy by only 5--9\%; deployment needs ambient data}
+\begin{frame}{Forecasts flag 80\% of overheating onsets about 23 h ahead but improve accuracy by only 5--9\%; deployment needs ambient data}
   \kpi{−9.1\%}{24 h error vs.\\persistence (ETTh1)}{accent}\hfill
-  \kpi{87\%}{Onsets warned early\\(ETTh2, 11 false h/month)}{good}\hfill
-  \kpi{$\sim$21 h}{Median warning\\lead time}{accent2}\hfill
+  \kpi{80\%}{Onsets warned early\\(ETTh2, 10 false h/month)}{good}\hfill
+  \kpi{$\sim$23 h}{Median warning\\lead time}{accent2}\hfill
   \kpi{0 h}{Lead time of today's\\threshold alarm}{bad}
   \vspace{0.2cm}
   \begin{columns}[T]
@@ -30,9 +30,9 @@
       \softbox{}{\scriptsize\textbf{Findings}
       \begin{itemize}\setlength{\itemsep}{1pt}
         \item Strong inertia limits the 24 h gain to 5--9\%, but \hl{3--6 h ahead error falls 13--53\%}
-        \item Best: physics features + a linear model. GBM, LSTM etc. did not beat it
+        \item Best on ETTh1: physics features + linear model (ETTh2: ensemble, narrowly). GBM, LSTM etc. did not beat it
         \item The value is \emph{warning lead time}, not accuracy; the next-day load plan is key
-        \item Raw intervals under-cover (77--84\%); conformal calibration gives 90\%
+        \item Raw intervals under-cover (75--84\%); conformal calibration gives 90\%
       \end{itemize}}
     \end{column}
     \begin{column}{0.49\textwidth}
@@ -44,7 +44,7 @@
       \end{itemize}}
     \end{column}
   \end{columns}
-  \source{Evaluation: Jul 2017 -- Jun 2018, 12 monthly rolling folds. Warning rates rest on 15 onsets and are indicative.}
+  \source{Evaluation: Jul 2017 -- Jun 2018, 12 monthly rolling folds. Warning rates rest on 15 onsets; the 4 °C margin was read off the evaluation year (exploratory).}
 \end{frame}
 
 % ------------------------------------------------------------------ 2 scope
@@ -53,7 +53,7 @@
   \begin{columns}[T]
     \begin{column}{0.56\textwidth}
       \centering
-      \begin{tikzpicture}[x=0.62cm,y=0.62cm,font=\scriptsize]
+      \begin{tikzpicture}[x=0.54cm,y=0.62cm,font=\scriptsize]
         \draw[->,thick,muted] (0,0) -- (12.5,0) node[right]{time};
         \draw[thick] (6,-0.2) -- (6,0.2) node[above=2pt]{\textbf{t} (issue time)};
         \draw[thick] (12,-0.2) -- (12,0.2) node[above=2pt]{\textbf{T = t+24h}};
@@ -94,7 +94,7 @@
         \item \textbf{31st-day freeze}: \hl{every 31st} is constant on all 7 channels for 24 h, a gap-filling artefact (14 days per transformer)
         \item \textbf{Stuck}: ETTh2 MUFL constant for \hl{1,025 h (43 days)}; stuck share 3.2\% / 16.2\%
         \item \textbf{Spikes}: −20 °C → +23 °C within 1 h (ETTh2)
-        \item \textbf{Balance}: high = middle + low load holds on ETTh1 (r=0.99), not ETTh2 (r=0.48)
+        \item \textbf{Balance}: assuming high = middle + low (from the column names), it holds on ETTh1 (r=0.99), not ETTh2 (r=0.48)
       \end{itemize}
       \vspace{0.1cm}
       \softbox{}{\scriptsize\textbf{Handling}: invalid targets are not trained on or scored. A stuck input sensor switches the forecast to persistence (past data only, as in operation)}
@@ -155,7 +155,7 @@
     \midrule
     Forecast the change & Learn OT(T)−OT(t) and add it to the current value & Level shifts between years (p.6); trees cannot extrapolate outside the training range \\
     Physics features & S² ($\propto$ current²), smoothing at 3/12/48 h, thermal time-constant estimate & IEC 60076-7 first-order thermal model; delayed load effect (p.5) \\
-    Strong benchmark & Skill vs. persistence and the Diebold--Mariano test & Naive forecasts are strong on inert series (Cui et al. 2021, Hewamalage et al. 2023) \\
+    Strong benchmark & Skill vs. persistence and the Diebold--Mariano test & Naive forecasts are strong for slowly changing series (Cui et al. 2021, Hewamalage et al. 2023) \\
     Rolling validation & Refit monthly over 12 months, covering all seasons; tuning on development data only & A single spring test split gives season-dependent conclusions \\
     Data-quality handling & Detect stuck sensors and spikes from past data only; fall back to persistence & The defects of p.4 can occur in operation too \\
     Interval calibration & Quantile regression + conformal calibration (CQR) & Interval under-coverage is a known issue (Tembo et al. 2025) \\
@@ -168,7 +168,7 @@
 \settag{Evaluation protocol}
 \begin{frame}{The evaluation never looks into the future and measures generalisation across all seasons with 12 monthly rolling folds}
   \centering
-  \begin{tikzpicture}[x=0.52cm,y=0.42cm,font=\scriptsize]
+  \begin{tikzpicture}[x=0.44cm,y=0.38cm,font=\scriptsize]
     \foreach \i in {0,...,23} { \draw[rule] (\i,0.6) -- (\i,0.8); }
     \node[above] at (0,0.8) {2016-07};
     \node[above] at (24,0.8) {2018-06};
@@ -185,13 +185,13 @@
     \fill[accent!35] (2,-4.7) rectangle (3,-4.3); \node[right] at (3.1,-4.5) {train (expanding)};
     \fill[good!60] (9,-4.7) rectangle (10,-4.3); \node[right] at (10.1,-4.5) {test month};
   \end{tikzpicture}
-  \vspace{0.25cm}
+  \vspace{0.1cm}
   \begin{columns}[T]
     \begin{column}{0.32\textwidth}\footnotesize
       \textbf{No leakage}
       \begin{itemize}
-        \item Scaling, features, thresholds fitted on training data only
-        \item Splits by target time
+        \item Each month refitted at its first issue time with labels known then
+        \item Thresholds and calibration: development data only
       \end{itemize}
     \end{column}
     \begin{column}{0.32\textwidth}\footnotesize
@@ -205,6 +205,7 @@
       \textbf{Significance}
       \begin{itemize}
         \item Diebold--Mariano test, HAC variance for overlapping 24 h forecasts
+        \item Holm correction across the 24 comparisons
       \end{itemize}
     \end{column}
   \end{columns}
@@ -213,12 +214,12 @@
 
 % ------------------------------------------------------------------ 8 accuracy
 \settag{Results ① Accuracy}
-\begin{frame}{The linear model with the load plan is best, cutting 24 h error vs. persistence by 9.1\% (ETTh1) and 4.8\% (ETTh2)}
-  \centering\includegraphics[width=\textwidth,height=4.9cm,keepaspectratio]{res_skill}\par\raggedright
+\begin{frame}{The linear model with the plan cuts 24 h error by 9.1\% (ETTh1) and 4.8\% (ETTh2); the ensemble narrowly leads on ETTh2}
+  \centering\includegraphics[width=\textwidth,height=3.9cm,keepaspectratio]{res_skill}\par\raggedright
   \scriptsize
   \begin{itemize}\setlength{\itemsep}{1pt}
-    \item MAE: ETTh1 1.76 → \hl{1.60 °C}, ETTh2 3.25 → \hl{3.09 °C} (both p<0.01). Next: equal-weight ensemble (C), 6.1\% / 5.1\%
-    \item \hl{The plan (C)} helps linear, tree and ensemble models (ETTh1 Ridge 3.8\% → 9.1\%); the physics model gets worse on both stations and the LSTM flips: the benefit is model-dependent
+    \item MAE: ETTh1 1.76 → \hl{1.60 °C} (Holm-adjusted p<0.001), ETTh2 3.25 → \hl{3.09 °C} (p=0.004 unadjusted; 0.10 after Holm, so not significant)
+    \item \hl{The plan (C)} helps every model except the physics model alone (ETTh1 Ridge 3.9\% → 9.1\%), which gets worse on both stations: the benefit is model-dependent
   \end{itemize}
 \end{frame}
 
@@ -226,24 +227,24 @@
 \settag{Results ② Model complexity}
 \begin{frame}{More complex is not better: GBM, LSTM and MLP did not beat the linear model under year-to-year drift}
   \scriptsize
-  \renewcommand{\arraystretch}{1.15}
+  \renewcommand{\arraystretch}{1.08}
   \begin{tabularx}{\textwidth}{>{\bfseries}p{4.2cm} c c X}
     \toprule
     Method (C: with plan) & ETTh1 & ETTh2 & Interpretation \\
     \midrule
-    Ridge (physics features) & \hlg{+9.1\%*} & \hlg{+4.8\%*} & Best. Few parameters, extrapolates well \\
-    Ensemble (Ridge+GBM+Hybrid) & +6.1\%* & \hlg{+5.1\%*} & Stable. Best on ETTh2, by a small margin \\
-    Raw-window linear (DLinear-style) & +5.3\%* & +2.9\% & Competitive without feature design (consistent with Zeng et al. 2023) \\
-    LSTM (raw sequence) & +3.5\% & −2.7\% & No clear advantage for sequence models \\
-    GBM / robust GBM / peak GBM & −0.5 to +1.8\% & −0.7 to +4.1\% & −5 to −12\% without the plan (B); weak under level shifts \\
-    Physics + GBM hybrid & −7.9\%* & +1.9\% & Fails to learn the physics model's residual \\
-    MLP & −45\%* & −17\%* & Overfits; unstable for this data size \\
+    Ridge (physics features) & \hlg{+9.1\%*} & +4.8\% & Best on ETTh1. Few parameters, extrapolates well \\
+    Ensemble (Ridge+GBM+Hybrid) & +6.4\% & \hlg{+5.8\%} & Best on ETTh2, 1 point ahead of Ridge \\
+    MLP (64-32) & +5.9\% & +3.9\% & Short of the linear model \\
+    Raw-window linear (DLinear-style) & +5.3\% & +2.9\% & Competitive without feature design (consistent with Zeng et al. 2023) \\
+    LSTM (raw sequence) & +3.5\% & −0.3\% & No clear advantage for sequence models \\
+    GBM / robust GBM / peak GBM & −2.6 to +1.3\% & +0.5 to +2.3\% & −4 to −8\% without the plan (B); weak under level shifts \\
+    Physics + GBM hybrid & −7.2\% & +2.0\% & Fails to learn the physics model's residual \\
     Bias correction from past 7 days (+BC) & worse & worse & Errors are weather-driven swings, not persistent bias \\
     \bottomrule
   \end{tabularx}
   \vspace{0.15cm}
-  \softbox{}{\scriptsize\textbf{Implication}: accuracy is capped by \hl{input information (no ambient temperature)}, not model capacity. Adding data will pay off more than adding model complexity.}
-  \source{Figures are the reduction in 24 h MAE vs. persistence. * = Diebold--Mariano p<0.05.}
+  \softbox{}{\scriptsize\textbf{Implication}: accuracy seems limited by \hl{input information (no ambient temperature)} more than model capacity. Prioritise data over complexity (a hypothesis to test with ambient data).}
+  \source{Figures are the reduction in 24 h MAE vs. persistence. * = Diebold--Mariano p<0.05 after Holm correction across each station's comparisons.}
 \end{frame}
 
 % ------------------------------------------------------------------ 10 horizons
@@ -261,7 +262,7 @@
 
 % ------------------------------------------------------------------ 11 alerts
 \settag{Business value ① Early overheating warning}
-\begin{frame}{With a 4 °C warning margin, 87\% of overheating onsets are flagged about 21 h ahead, with false alerts held to about 11 h per month}
+\begin{frame}{With a 4 °C warning margin, 80\% of overheating onsets are flagged about 23 h ahead, with false alerts held to about 10 h per month}
   \begin{columns}[T]
     \begin{column}{0.50\textwidth}
       \includegraphics[width=\textwidth]{res_alert_tradeoff}
@@ -274,56 +275,57 @@
         Alert rule & Warned & False h/mo \\
         \midrule
         Today: threshold & 0\% & -- \\
-        Forecast (B) + 4 °C & 87\% & 14.0 \\
-        \textbf{Forecast (C) + 4 °C} & \hlg{87\%} & \hlg{10.7} \\
-        Forecast (C) + 3 °C & 60\% & 6.8 \\
-        90\% interval upper bound & 100\% & 31.2 \\
+        Forecast (B) + 4 °C & 87\% & 12.9 \\
+        \textbf{Forecast (C) + 4 °C} & \hlg{80\%} & \hlg{10.2} \\
+        Forecast (C) + 5 °C & 93\% & 15.8 \\
+        90\% interval upper bound & 100\% & 31.6 \\
         \bottomrule
       \end{tabular}
-      \vspace{0.2cm}
-      \begin{itemize}\setlength{\itemsep}{2pt}
+      \vspace{0.1cm}
+      \begin{itemize}\setlength{\itemsep}{1pt}
         \item The margin is \hl{the operator's dial}: false-alarm vs. miss cost
-        \item The plan gives the same recall with \hl{fewer false alerts}
+        \item 4 °C was \hl{read off the evaluation curve}; fix it in the shadow run
+        \item For alerts the plan adds little
         \item ETTh1 never reaches the proxy alarm; not scored
       \end{itemize}
     \end{column}
   \end{columns}
-  \source{ETTh2. Onset: crossing the proxy alarm (46.4 °C, development 95th pct.) after $\geq$24 h below it; 15 onsets, indicative only.}
+  \source{ETTh2, ensemble. Onset: proxy alarm (46.4 °C) crossed after $\geq$24 h below; 15 onsets. 13 of 620 alerts unscorable (missing truth).}
 \end{frame}
 
 % ------------------------------------------------------------------ 12 uncertainty
 \settag{Business value ② Communicating uncertainty}
-\begin{frame}{The quantile-regression ``90\% interval'' actually covered only 77--84\%, but conformal calibration brought it to 90\%}
+\begin{frame}{The quantile-regression ``90\% interval'' actually covered only 75--84\%, but conformal calibration brought it to 90\%}
   \begin{columns}[T]
     \begin{column}{0.62\textwidth}
       \includegraphics[width=\textwidth]{res_example_forecast}
     \end{column}
     \begin{column}{0.36\textwidth}
-      \footnotesize
+      \scriptsize
       \renewcommand{\arraystretch}{1.25}
       \begin{tabular}{l c c}
         \toprule
         & Raw & \textbf{After CQR} \\
         \midrule
         Coverage ETTh1 & 84\% & \hlg{90\%} \\
-        Coverage ETTh2 & 77\% & \hlg{90\%} \\
-        Width ETTh1 & 6.0 °C & 7.2 °C \\
-        Width ETTh2 & 9.3 °C & 12.7 °C \\
+        Coverage ETTh2 & 75\% & \hlg{91\%} \\
+        Width ETTh1 & 6.0 °C & 7.3 °C \\
+        Width ETTh2 & 9.0 °C & 13.0 °C \\
         \bottomrule
       \end{tabular}
       \vspace{0.2cm}
       \begin{itemize}\setlength{\itemsep}{2pt}
         \item \hl{Check stated confidence on real data} before maintenance use
-        \item Width (ETTh2 about ±6 °C) reflects the missing ambient temperature
+        \item Width (ETTh2 about ±6.5 °C) likely reflects the missing ambient temperature
       \end{itemize}
     \end{column}
   \end{columns}
-  \source{CQR: Romano et al. (2019). Latest 60 days of each fold held out for calibration. Framing C.}
+  \source{CQR: Romano et al. (2019); last 60 days before each refit calibrate. Framing C. Coverage is measured, not guaranteed; fallback hours excluded.}
 \end{frame}
 
 % ------------------------------------------------------------------ 13 robustness
 \settag{Business value ③ Load-plan quality requirement}
-\begin{frame}{The plan helps up to about 10\% plan error, but at 20\% both stations fall below the no-plan forecast: plan accuracy is a precondition}
+\begin{frame}{The plan's benefit fades at 5--10\% plan error and at 20\% both stations fall below the no-plan forecast: plan accuracy is a precondition}
   \begin{columns}[T]
     \begin{column}{0.55\textwidth}
       \includegraphics[width=\textwidth]{res_load_noise}
@@ -331,14 +333,14 @@
     \begin{column}{0.43\textwidth}
       \footnotesize
       \begin{itemize}\setlength{\itemsep}{3pt}
-        \item ``Imperfect plan'': actual load + daily bias + hourly noise (σ)
-        \item ETTh1: skill 9.1\% (no error) → 7.1\% (10\%) → \hlb{1.4\% (20\%)}, below no plan (3.8\%)
-        \item ETTh2: 4.8\% → 4.3\% → \hlb{2.9\% (20\%)}, below no plan (4.1\%)
-        \item \hl{Requirement}: plan error within about 10\%; otherwise use B
+        \item ``Imperfect plan'': daily bias + hourly noise (σ) added to future load only; mean of 5 draws
+        \item ETTh1: skill 9.1\% (no error) → 7.2\% (10\%) → \hlb{2.0\% (20\%)}, below no plan (3.9\%)
+        \item ETTh2: 4.8\% → 4.3\% (10\%, ≈ no plan 4.2\%) → \hlb{3.1\% (20\%)}
+        \item \hl{Requirement}: plan error within about 5--10\%; otherwise use B
       \end{itemize}
     \end{column}
   \end{columns}
-  \source{Trained on true load; plan error added only at evaluation, as in operation. Model: Ridge (C).}
+  \source{Trained on true load; plan error added only at evaluation, never to measured history. Band: min--max of 5 draws. Model: Ridge (C).}
 \end{frame}
 
 % ------------------------------------------------------------------ 14 failure analysis
@@ -347,8 +349,8 @@
   \centering\includegraphics[width=\textwidth,height=3.6cm,keepaspectratio]{res_monthly}\par\raggedright
   \scriptsize
   \begin{itemize}\setlength{\itemsep}{1pt}
-    \item Hot-period MAE (above the development 90th pct., ETTh2): persistence \textbf{2.69 °C}, Ridge (C) 3.07, peak GBM 3.10. \hlb{Models pull peaks to the mean}
-    \item Only LSTM (B) beats it (2.56 °C): promising for extremes. A hot-range model or ambient temperature could help
+    \item Hot-period MAE (above the development 90th pct., ETTh2): persistence \textbf{2.69 °C}, Ridge (C) 3.04, peak GBM 3.07. \hlb{Models pull peaks to the mean}
+    \item No model beats it; closest are LSTM (C) 2.76 °C and MLP (C) 2.79 °C. A hot-range model or ambient temperature could help
     \item The alert margin offsets this under-prediction (p.12)
   \end{itemize}
 \end{frame}
@@ -360,16 +362,16 @@
     \begin{column}{0.49\textwidth}
       \softbox{}{\footnotesize\textbf{Rule-based data-quality monitoring: works}
       \begin{itemize}\setlength{\itemsep}{1pt}
-        \item Detects stuck sensors, spikes, 31st-day freeze, load imbalance (past data only)
+        \item Detects stuck load sensors, OT spikes and all-channel freezes from past data (after 24 h / 12 h of constancy). Load balance is descriptive only
         \item Found a real \hl{43-day stuck sensor} (p.4)
-        \item Forecasts then fall back to persistence
+        \item A stuck load sensor switches forecasts to persistence (continuity, not necessarily conservative)
       \end{itemize}}
     \end{column}
     \begin{column}{0.49\textwidth}
       \softbox{}{\footnotesize\textbf{Residual-based cooling-fault detection: not yet}
       \begin{itemize}\setlength{\itemsep}{1pt}
         \item Alarm on the 6 h mean gap to load-based expected OT (Djamali \& Tenbohlen; CIGRE digital twin)
-        \item +3--8 °C synthetic faults caught \hlb{$\leq$10\%}: the model ``follows'' the fault, so the gap stays below the threshold (1.5--1.7 °C)
+        \item +3--8 °C synthetic faults caught \hlb{0\%} (0 of 180): the model ``follows'' the fault, so the gap stays below the threshold (1.5--1.7 °C)
         \item +20 °C in 12 h: all caught on ETTh1 (ETTh2: 10\%)
       \end{itemize}}
     \end{column}
@@ -377,7 +379,7 @@
   \vspace{0.2cm}
   \footnotesize
   \textbf{Conclusion}: re-test fault detection with ambient temperature and cooling status as inputs; for now deploy data-quality monitoring only.
-  \source{Synthetic fault: 12 h linear rise, held 36 h; 30 per size. Threshold: 99.5th pct. of normal development windows.}
+  \source{Synthetic fault: 12 h rise, held 36 h; 30 per size at the same onsets, only where the unmodified data are clean and alarm-free.}
 \end{frame}
 
 % ------------------------------------------------------------------ 16 limitations
@@ -389,7 +391,7 @@
     \toprule
     Limitation & Impact & What resolves it \\
     \midrule
-    No ambient temperature & Daily-cycle driver unexplained; caps accuracy and fault detection & Hourly temperature, nearest weather station \\
+    No ambient temperature & The likely daily-cycle driver is missing; probably limits accuracy and fault detection & Hourly temperature, nearest weather station \\
     No alarm levels or fault history & Proxy alarm only; avoided loss cannot be costed & Alarm settings, maintenance records \\
     Few evaluation events & 15 onsets only; uncertain warning rates & More transformers and periods \\
     Only two transformers & Generalisation untested; the two differ widely & Asset register, multi-unit data \\
@@ -403,13 +405,13 @@
 \begin{frame}{We propose adding ambient temperature and a 3-month shadow run, then deploying forecast alerts once acceptance criteria are met}
   \centering
   \begin{tikzpicture}[font=\scriptsize, node distance=0.35cm,
-      stepbox/.style={draw=accent, thick, fill=soft, rounded corners=2pt, text width=4.1cm, minimum height=2.9cm, align=left, inner sep=5pt}]
+      stepbox/.style={draw=accent, thick, fill=soft, rounded corners=2pt, text width=3.95cm, minimum height=2.9cm, align=left, inner sep=5pt}]
     \node[stepbox] (a) {\textbf{\color{accent}Step 1 (1 month)\\Enrich the data}\\[3pt]
       ・Connect ambient temperature\\・Share alarm levels, maintenance records\\・Start data-quality monitoring\\[3pt]
-      \textbf{Pass}: ambient temperature improves MAE by $\geq$10\%};
+      \textbf{Proposed pass}: ambient temperature improves MAE by $\geq$10\%};
     \node[stepbox, right=of a] (b) {\textbf{\color{accent}Step 2 (3 months)\\Shadow run}\\[3pt]
       ・Show forecasts beside operations (not for decisions)\\・Log false alerts and misses\\[3pt]
-      \textbf{Pass}: $\geq$80\% warned $\geq$12 h ahead, $\leq$10 false alerts/month};
+      \textbf{Proposed pass}: $\geq$80\% warned $\geq$12 h ahead, $\leq$10 false alert-hours/month};
     \node[stepbox, right=of b] (c) {\textbf{\color{accent}Step 3\\Deploy and scale}\\[3pt]
       ・Add alerts to maintenance procedures\\・Re-test cooling-fault detection\\・Extend to more transformers\\[3pt]
       \textbf{Monitor}: monthly coverage, error, drift; retrain};
@@ -419,7 +421,7 @@
   \vspace{0.3cm}
   \footnotesize
   \begin{itemize}
-    \item This PoC's code (data-quality checks, features, rolling validation, interval calibration, alert simulation) can be reused as-is as the Step 2 evaluation platform
+    \item This PoC's code (data-quality checks, features, rolling validation, interval calibration, alert simulation) can be reused as the Step 2 evaluation platform; features are computed without labels (connection to live systems not built)
   \end{itemize}
 \end{frame}
 
@@ -437,7 +439,7 @@
     Ridge & Physics features (S², S² exponential smoothing at 3/12/48 h, oil-temperature change, calendar). Regularisation chosen on development data \\
     GBM / robust / peak & HistGradientBoosting. Robust: drops the oil-temperature level and up-weights recent data (half-life 180 days). Peak: top 10\% weighted ×3 \\
     Hybrid & GBM trained on the grey-box residual \\
-    MLP / LSTM & MLP (64-32). LSTM: raw past 72 h + (C) next 24 h of plan, early stopping \\
+    MLP / LSTM & MLP (64-32). LSTM: raw past 72 h + (C) next 24 h of plan. Both early-stop on the chronologically last part of the training data \\
     Raw-window linear & Ridge on past 168 h of oil temperature and S² (+24 h of plan) (DLinear-style) \\
     Ensemble / +BC & Equal-weight mean of Ridge, robust GBM and hybrid. +BC: subtract the mean error of the past 7 days \\
     CQR & Quantile GBM (5\%, 95\%) + conformal calibration \\
@@ -451,9 +453,9 @@
   \begin{enumerate}\setlength{\itemsep}{0pt}
     \item H. Zhou et al. Informer: Beyond Efficient Transformer for Long Sequence Time-Series Forecasting. AAAI 2021. (ETT dataset, CC BY-ND 4.0)
     \item IEC 60076-7:2018 Loading guide for mineral-oil-immersed power transformers. / IEEE Std C57.91-2011.
-    \item D. Tembo et al. Data-Driven vs Traditional Approaches to Power Transformer's Top-Oil Temperature Estimation. arXiv:2501.16831, 2025.
+    \item F. Tembo et al. Data-Driven vs Traditional Approaches to Power Transformer's Top-Oil Temperature Estimation. arXiv:2501.16831, 2025.
     \item M. Djamali, S. Tenbohlen. Malfunction Detection of the Cooling System in Air-Forced Power Transformers Using Online Thermal Monitoring. IEEE Trans. Power Delivery, 2017.
-    \item CIGRE. Digital twins for power transformers: concept and future perspectives. Electra, 2026.
+    \item CIGRE Technical Brochure 995. Digital twins for power transformers: concept and future perspectives. 2026.
     \item H. Hewamalage, K. Ackermann, C. Bergmeir. Forecast evaluation for data scientists: common pitfalls and best practices. Data Min. Knowl. Disc. 37, 2023.
     \item Y. Cui, J. Xie, K. Zheng. Historical Inertia: A Neglected but Powerful Baseline for Long Sequence Time-Series Forecasting. CIKM 2021.
     \item A. Zeng et al. Are Transformers Effective for Time Series Forecasting? AAAI 2023.

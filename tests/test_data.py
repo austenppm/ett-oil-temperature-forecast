@@ -2,7 +2,13 @@ import numpy as np
 import pandas as pd
 
 from ettpoc import config as C
-from ettpoc.data import clean_ot_causal, quality_flags
+from ettpoc.data import (
+    bad_target_causal,
+    bad_targets_known_at,
+    clean_ot_causal,
+    development,
+    quality_flags,
+)
 
 
 def test_single_hour_spike_is_removed_but_a_level_shift_is_kept():
@@ -33,3 +39,32 @@ def test_day_frozen_on_every_channel_is_a_bad_target(station):
     df.loc[frozen] = np.tile(df.loc[frozen[0]].to_numpy(), (len(frozen), 1))
     flags = quality_flags(df)
     assert flags.all_channels_flat[frozen].all() and flags.bad_target[frozen].all()
+
+
+def test_label_quality_known_at_a_cutoff_ignores_later_data(station):
+    cutoff = station.index[24 * 30]
+    later = station.copy()
+    # A stuck run that starts before the cutoff only becomes long enough after it.
+    stuck = (later.index > cutoff - pd.Timedelta(hours=6)) & (
+        later.index <= cutoff + pd.Timedelta(hours=20)
+    )
+    later.loc[stuck, "OT"] = 33.0
+    known = bad_targets_known_at(later, cutoff)
+    assert known.index.max() == cutoff
+    assert not known.any()  # 6 constant hours at the cutoff are not yet a stuck sensor
+    assert quality_flags(later).bad_target[stuck].all()  # the full series says they are
+
+
+def test_causal_bad_target_ignores_the_future(station):
+    cut = station.index[24 * 40]
+    scrambled = station.copy()
+    scrambled.loc[scrambled.index > cut, "OT"] = 99.0
+    pd.testing.assert_series_equal(
+        bad_target_causal(station)[:cut], bad_target_causal(scrambled)[:cut]
+    )
+
+
+def test_development_ends_at_the_first_evaluation_issue_time():
+    s = pd.Series(1.0, index=pd.date_range("2017-06-29", "2017-07-02", freq="h"))
+    dev = development(s)
+    assert dev.index.max() == pd.Timestamp(C.EVAL_START) - pd.Timedelta(hours=C.H)

@@ -7,16 +7,20 @@ Post-processing done here (both strictly causal):
   deliberate choice: estimated combination weights rarely beat the simple average
   out of sample (the "forecast combination puzzle", Smith & Wallis 2009).
 - Bias correction (+BC): subtract the model's own mean error over the last 7 days,
-  using only errors whose target time has already passed at the issue time.
+  using only errors whose target time has already passed at the issue time, and
+  excluding readings judged invalid with the data available at that time.
+
+Significance: Diebold-Mariano p-values are Holm-adjusted across all models compared with
+persistence on a station (DM_p_holm); the tables keep the unadjusted p-values as well.
 """
 
 import numpy as np
 import pandas as pd
 
 from . import config as C
-from .data import load_station, quality_flags
-from .evaluation import diebold_mariano, evaluate_alerts, point_metrics
-from .experiment import noise_model_name
+from .data import bad_target_causal, development, load_station, quality_flags, valid_at
+from .evaluation import diebold_mariano, evaluate_alerts, holm, point_metrics
+from .experiment import NOISE_SEEDS, noise_model_name
 from .plotting import INK, MODEL_COLORS, MUTED, STATION_COLORS, plt, save
 
 ENSEMBLE_MEMBERS = ["Ridge", "GBM-robust", "Hybrid"]
@@ -83,13 +87,15 @@ def add_ensemble(p: pd.DataFrame) -> pd.DataFrame:
     return pd.concat([p, *out], ignore_index=True)
 
 
-def bias_corrected(g: pd.DataFrame, days: int = 7) -> pd.DataFrame:
+def bias_corrected(g: pd.DataFrame, bad_causal: pd.Series, days: int = 7) -> pd.DataFrame:
     """Causal rolling bias correction for one (station, framing, model) series.
 
-    At issue time t, only errors of forecasts whose target time is <= t are known.
+    At issue time t, only errors of forecasts whose target time is <= t are known, and
+    whether such a reading was invalid must be decided with data up to it (`bad_causal`).
     """
     g = g.sort_values("issue_time").copy()
-    scored = g[~g.bad_target].set_index("target_time")
+    invalid = ~valid_at(bad_causal, g.target_time)
+    scored = g[~invalid].set_index("target_time")
     err = (scored.ot_pred - scored.ot_true).sort_index()
     bias = err.rolling(f"{days}D").mean().rename("bias").reset_index()
     known = pd.merge_asof(
@@ -106,22 +112,38 @@ def bias_corrected(g: pd.DataFrame, days: int = 7) -> pd.DataFrame:
 
 def add_bias_correction(p: pd.DataFrame) -> pd.DataFrame:
     """Append bias-corrected versions ("<model>+BC") of BC_MODELS."""
+    bad_causal = {st: bad_target_causal(load_station(st)) for st in p.station.unique()}
     candidates = p[p.model.isin(BC_MODELS) & (p.framing != "-")]
     out = [
-        bias_corrected(g).assign(model=f"{model}+BC", lo=np.nan, hi=np.nan)
-        for (_, _, model), g in candidates.groupby(["station", "framing", "model"])
+        bias_corrected(g, bad_causal[st]).assign(model=f"{model}+BC", lo=np.nan, hi=np.nan)
+        for (st, _, model), g in candidates.groupby(["station", "framing", "model"])
     ]
     return pd.concat([p, *out], ignore_index=True)
+
+
+def load_neural(p: pd.DataFrame) -> pd.DataFrame | None:
+    """LSTM predictions, if present; they must come from the same run as `p`."""
+    nn_path = C.OUT_DIR / "predictions_nn.csv.gz"
+    if not nn_path.exists():
+        return None
+    run_id = C.RUN_ID_FILE.read_text()
+    nn_run_id = C.NN_RUN_ID_FILE.read_text() if C.NN_RUN_ID_FILE.exists() else None
+    if nn_run_id != run_id:
+        raise RuntimeError(f"{nn_path} is from another experiment run; re-run `make neural`")
+    nn = pd.read_csv(nn_path, parse_dates=["issue_time", "target_time"])
+    keys = ["station", "framing", "fold", "issue_time"]
+    ridge = p[p.model == "Ridge"][keys].sort_values(keys).reset_index(drop=True)
+    if not nn[keys].sort_values(keys).reset_index(drop=True).equals(ridge):
+        raise RuntimeError("LSTM predictions do not cover the same forecasts as the experiment")
+    return nn
 
 
 def load_all() -> pd.DataFrame:
     """All predictions (tabular models, LSTM if available, ensemble and +BC variants)."""
     p = pd.read_csv(C.OUT_DIR / "predictions.csv.gz", parse_dates=["issue_time", "target_time"])
-    nn_path = C.OUT_DIR / "predictions_nn.csv.gz"
-    if nn_path.exists():
-        p = pd.concat(
-            [p, pd.read_csv(nn_path, parse_dates=["issue_time", "target_time"])], ignore_index=True
-        )
+    nn = load_neural(p)
+    if nn is not None:
+        p = pd.concat([p, nn], ignore_index=True)
     return add_bias_correction(add_ensemble(p))
 
 
@@ -131,7 +153,7 @@ def overall_table(p):
     for st in C.STATIONS:
         ps = p[p.station == st]
         bench = ps[ps.model == "Persistence"].set_index("issue_time")
-        hot_thr = load_station(st).OT[: C.EVAL_START].quantile(0.90)
+        hot_thr = development(load_station(st).OT).quantile(0.90)
         for fr, m in MAIN_MODELS:
             d = ps[(ps.framing == fr) & (ps.model == m)].set_index("issue_time")
             if d.empty:
@@ -168,6 +190,10 @@ def overall_table(p):
                 }
             )
     t = pd.DataFrame(rows)
+    t["DM_p_holm"] = np.nan
+    for st in C.STATIONS:
+        rows_st = t.station == st
+        t.loc[rows_st, "DM_p_holm"] = holm(t.loc[rows_st, "DM_p"])
     t.round(4).to_csv(C.TAB_DIR / "results_overall.csv", index=False)
     return t
 
@@ -207,24 +233,30 @@ def interval_table():
 
 
 def _alert_inputs(st):
+    """Proxy alarm level (development data) and the truth series for alert scoring.
+
+    The truth starts H hours before the evaluation year so that hot-spell onsets early in
+    July can be checked for the required H quiet hours before them; invalid hours are NaN.
+    """
     df = load_station(st)
     flags = quality_flags(df)
-    thr = df.OT[: C.EVAL_START].quantile(C.ALERT_QUANTILE)
-    truth = df.OT.where(~flags.bad_target)[C.EVAL_START : C.EVAL_END]
-    return thr, truth
+    thr = development(df.OT).quantile(C.ALERT_QUANTILE)
+    first = pd.Timestamp(C.EVAL_START)
+    truth = df.OT.where(~flags.bad_target)[first - pd.Timedelta(hours=C.H) : C.EVAL_END]
+    return thr, truth, first
 
 
 def alert_table(p_all):
     rows = []
     for st in C.STATIONS:
-        thr, truth = _alert_inputs(st)
+        thr, truth, first = _alert_inputs(st)
         ps = p_all[p_all.station == st]
         rows.append(
             {
                 "station": st,
                 "system": "Threshold alarm on current OT (status quo)",
                 "threshold": thr,
-                **evaluate_alerts([], [], truth, thr),
+                **evaluate_alerts([], [], truth, thr, scored_from=first),
                 "recall_early": 0.0,
                 "median_lead_h": 0.0,
             }
@@ -246,7 +278,7 @@ def alert_table(p_all):
                     "station": st,
                     "system": f"24 h forecast alarm: {name}",
                     "threshold": thr,
-                    **evaluate_alerts(d.issue_time, pred.to_numpy(), truth, thr),
+                    **evaluate_alerts(d.issue_time, pred.to_numpy(), truth, thr, scored_from=first),
                 }
             )
     t = pd.DataFrame(rows)
@@ -256,18 +288,20 @@ def alert_table(p_all):
 
 def alert_tradeoff(p_all, st="ETTh2", model="Ensemble"):
     """Sweep the alert margin: alert when forecast > threshold - margin."""
-    thr, truth = _alert_inputs(st)
+    thr, truth, first = _alert_inputs(st)
     ps = p_all[p_all.station == st]
     rows = []
     for fr in ("B", "C"):
         d = ps[(ps.framing == fr) & (ps.model == model)].sort_values("issue_time")
         for margin in np.arange(0, 10.5, 1.0):
-            r = evaluate_alerts(d.issue_time, d.ot_pred.to_numpy() + margin, truth, thr)
+            pred = d.ot_pred.to_numpy() + margin
+            r = evaluate_alerts(d.issue_time, pred, truth, thr, scored_from=first)
             rows.append(
                 {"framing": fr, "model": model, "rule": "point + margin", "margin": margin, **r}
             )
         g = ps[(ps.framing == fr) & (ps.model == "GBM")].sort_values("issue_time")
-        r = evaluate_alerts(g.issue_time, g.hi.fillna(g.ot_pred).to_numpy(), truth, thr)
+        upper = g.hi.fillna(g.ot_pred).to_numpy()
+        r = evaluate_alerts(g.issue_time, upper, truth, thr, scored_from=first)
         rows.append(
             {"framing": fr, "model": "GBM", "rule": "CQR upper bound", "margin": np.nan, **r}
         )
@@ -335,19 +369,28 @@ def noise_table(p):
             strict = point_metrics(
                 *ps[(ps.framing == "B") & (ps.model == fam)][["ot_true", "ot_pred"]].T.to_numpy()
             )["MAE"]
-            variants = [(0, fam)] + [
-                (round(s * 100), noise_model_name(fam, s)) for s in C.NOISE_SIGMAS
+            variants = [(0, [fam])] + [
+                (round(s * 100), [noise_model_name(fam, s, seed) for seed in NOISE_SEEDS])
+                for s in C.NOISE_SIGMAS
             ]
-            for pct, name in variants:
-                d = ps[(ps.framing == "C") & (ps.model == name)]
-                mae = point_metrics(d.ot_true, d.ot_pred)["MAE"]
+            for pct, names in variants:
+                maes = np.array(
+                    [
+                        point_metrics(d.ot_true, d.ot_pred)["MAE"]
+                        for d in (ps[(ps.framing == "C") & (ps.model == n)] for n in names)
+                    ]
+                )
+                skills = 1 - maes / base
                 rows.append(
                     {
                         "station": st,
                         "model": fam,
                         "load_plan_error_pct": pct,
-                        "MAE": mae,
-                        "skill_vs_persistence": 1 - mae / base,
+                        "n_seeds": len(names),
+                        "MAE": maes.mean(),
+                        "skill_vs_persistence": skills.mean(),
+                        "skill_min": skills.min(),
+                        "skill_max": skills.max(),
                         "skill_strict_B": 1 - strict / base,
                     }
                 )
@@ -403,7 +446,7 @@ def fig_skill(t):
                     linewidths=1.4,
                 )
                 if fr == "C" or fr == "-":
-                    sig = r.DM_p.iloc[0] < 0.05 if fr != "-" else False
+                    sig = r.DM_p_holm.iloc[0] < 0.05 if fr != "-" else False
                     ax.text(
                         max(v, -15) + 0.4,
                         i,
@@ -438,7 +481,7 @@ def fig_skill(t):
     axes[0].legend(fontsize=8, loc="lower left")
     fig.suptitle(
         "24 h-ahead forecast skill, 12 monthly rolling folds "
-        "(* = Diebold–Mariano p < 0.05 vs persistence)",
+        "(* = Diebold–Mariano p < 0.05 vs persistence, Holm-adjusted)",
         x=0.01,
         ha="left",
         fontweight="bold",
@@ -481,7 +524,15 @@ def fig_noise(t):
             d.skill_vs_persistence * 100,
             marker="o",
             color=STATION_COLORS[st],
-            label=f"{st}: Ridge (C)",
+            label=f"{st}: Ridge (C), mean of {d.n_seeds.max()} plan-error draws",
+        )
+        ax.fill_between(
+            d.load_plan_error_pct,
+            d.skill_min * 100,
+            d.skill_max * 100,
+            color=STATION_COLORS[st],
+            alpha=0.15,
+            lw=0,
         )
         b = d.skill_strict_B.iloc[0] * 100
         ax.axhline(b, color=STATION_COLORS[st], ls=":", lw=1)
@@ -508,7 +559,7 @@ def fig_importance(agg):
 
 def fig_example(p):
     st = "ETTh2"
-    thr, _ = _alert_inputs(st)
+    thr, _, _ = _alert_inputs(st)
     d = (
         p[(p.station == st) & (p.framing == "C") & (p.model == "GBM")]
         .set_index("target_time")

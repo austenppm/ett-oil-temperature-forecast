@@ -27,20 +27,54 @@ def make_ridge(alpha: float):
     return make_pipeline(StandardScaler(), Ridge(alpha=alpha))
 
 
-def make_mlp():
-    return make_pipeline(
-        StandardScaler(),
-        MLPRegressor(
-            hidden_layer_sizes=(64, 32),
-            alpha=1e-3,
-            learning_rate_init=1e-3,
-            max_iter=200,
-            early_stopping=True,
-            validation_fraction=0.1,
-            n_iter_no_change=10,
-            random_state=C.SEED,
-        ),
-    )
+class ChronoMLP:
+    """MLP (64-32) with early stopping on the chronologically last part of the training data.
+
+    scikit-learn's built-in early stopping holds out a random 10 %, which for overlapping
+    time-series targets is almost the training data itself. Here the hold-out is the last
+    10 % of rows, separated from the fitting rows by a gap of `gap` rows (the horizon), and
+    the scaler is fitted on the fitting rows only.
+    """
+
+    def __init__(self, validation_fraction=0.1, gap=C.H, max_epochs=200, patience=10):
+        self.validation_fraction = validation_fraction
+        self.gap = gap
+        self.max_epochs = max_epochs
+        self.patience = patience
+
+    def fit(self, X, y) -> "ChronoMLP":
+        X, y = np.asarray(X, dtype=float), np.asarray(y, dtype=float)
+        n_val = max(1, int(len(X) * self.validation_fraction))
+        fit_rows = slice(0, len(X) - n_val - self.gap)
+        val_rows = slice(len(X) - n_val, len(X))
+        self.scaler = StandardScaler().fit(X[fit_rows])
+        Xf, Xv = self.scaler.transform(X[fit_rows]), self.scaler.transform(X[val_rows])
+        self.net = MLPRegressor(
+            hidden_layer_sizes=(64, 32), alpha=1e-3, learning_rate_init=1e-3, random_state=C.SEED
+        )
+        best, best_state, stale = np.inf, None, 0
+        for _ in range(self.max_epochs):
+            self.net.partial_fit(Xf, y[fit_rows])
+            val_mae = float(np.mean(np.abs(self.net.predict(Xv) - y[val_rows])))
+            if val_mae < best - 1e-4:
+                best, stale = val_mae, 0
+                best_state = (
+                    [w.copy() for w in self.net.coefs_],
+                    [b.copy() for b in self.net.intercepts_],
+                )
+            else:
+                stale += 1
+                if stale >= self.patience:
+                    break
+        self.net.coefs_, self.net.intercepts_ = best_state
+        return self
+
+    def predict(self, X) -> np.ndarray:
+        return self.net.predict(self.scaler.transform(np.asarray(X, dtype=float)))
+
+
+def make_mlp() -> ChronoMLP:
+    return ChronoMLP()
 
 
 def make_gbm(params: dict, quantile: float | None = None):
@@ -136,8 +170,22 @@ class GreyBoxThermal:
         return dict(zip(self.columns, self.model.coef_, strict=True))
 
 
+def conformal_quantile(scores, alpha: float) -> float:
+    """The ceil((n + 1)(1 - alpha))-th smallest score (exact split-conformal order statistic)."""
+    scores = np.sort(np.asarray(scores, dtype=float))
+    n = len(scores)
+    k = int(np.ceil((n + 1) * (1 - alpha)))
+    if k > n:
+        raise ValueError(f"{n} calibration scores cannot give {1 - alpha:.0%} coverage")
+    return float(scores[k - 1])
+
+
 class CQR:
-    """Conformalized quantile regression for a two-sided (1 - alpha) interval."""
+    """Conformalized quantile regression for a two-sided (1 - alpha) interval.
+
+    The finite-sample guarantee of Romano et al. (2019) assumes exchangeable data; for a
+    time series the coverage is an empirical property, checked on every evaluation fold.
+    """
 
     def __init__(self, gbm_params: dict, alpha: float = C.INTERVAL_ALPHA):
         self.alpha = alpha
@@ -149,9 +197,7 @@ class CQR:
         self.lo.fit(X_tr, y_tr)
         self.hi.fit(X_tr, y_tr)
         scores = np.maximum(self.lo.predict(X_cal) - y_cal, y_cal - self.hi.predict(X_cal))
-        n = len(scores)
-        level = min(1.0, np.ceil((n + 1) * (1 - self.alpha)) / n)
-        self.q = float(np.quantile(scores, level))
+        self.q = conformal_quantile(scores, self.alpha)
         return self
 
     def predict(self, X, conformal: bool = True) -> tuple[np.ndarray, np.ndarray]:

@@ -14,14 +14,15 @@ enough to support preventive maintenance, compared with today's threshold monito
 | | ETTh1 | ETTh2 |
 |---|---|---|
 | Persistence MAE, 24 h ahead | 1.76 °C | 3.25 °C |
-| **Best model** (Ridge, physics features + load plan) | **1.60 °C (−9.1 %, DM p < 0.001)** | **3.09 °C (−4.8 %, p = 0.005)** |
+| **Ridge** (physics features + load plan) | **1.60 °C (−9.1 %, Holm-adjusted DM p < 0.001)** | **3.09 °C (−4.8 %, p = 0.004; Holm-adjusted 0.10)** |
+| Equal-weight ensemble (C) | 1.65 °C (−6.4 %) | **3.06 °C (−5.8 %, best on ETTh2)** |
 | Best skill at shorter lead times (vs. best naive benchmark) | 22 % at 12 h | 53 % at 1–3 h |
-| 90 % interval coverage: quantile regression → conformalized (CQR) | 84 % → 90 % | 77 % → 90 % |
+| 90 % interval coverage: quantile regression → conformalized (CQR) | 84 % → 90 % | 75 % → 91 % |
 
-- **Early warning (ETTh2, 15 hot-spell onsets):** alarming when the forecast is within 4 °C of the proxy alarm level warns **87 % of onsets a median 21 h ahead** with ~11 false alert-hours per month. Today's threshold alarm gives 0 h warning.
-- **Complex models did not win.** GBM, LSTM, MLP, a physics + ML hybrid and bias correction all failed to beat the linear model at 24 h. The input information is the bottleneck, not model capacity: **ambient temperature is not in the data** and appears to drive the daily cycle.
-- **Data quality matters.** Every 31st day of a month is frozen on all channels, ETTh2 has a load sensor stuck for 43 days, and there are ±20 °C single-hour spikes. These are flagged, excluded from scoring, and handled at run time by falling back to persistence.
-- **Fault detection** from the expected-versus-measured OT residual is **not viable without ambient temperature**: synthetic 3–8 °C cooling faults are detected ≤ 10 % of the time.
+- **Early warning (ETTh2, 15 hot-spell onsets):** an **Ensemble (C)** alarm that fires when the forecast is within 4 °C of the proxy alarm level warns **80 % of onsets a median 23 h ahead** with ~10 false alert-hours per month (5 °C: 93 %, ~16 h). Today's threshold alarm gives 0 h warning. The margin was read off the evaluation-year curve, so this is an exploratory operating point, not a validated policy.
+- **Complex models did not win.** GBM, LSTM, MLP, a physics + ML hybrid and bias correction did not beat Ridge on ETTh1; on ETTh2 the ensemble leads Ridge by one point. Only Ridge on ETTh1 stays significant after a Holm correction across all 24 comparisons per station. Our hypothesis is that input information limits accuracy more than model capacity: **ambient temperature is not in the data** and appears to drive the daily cycle.
+- **Data quality matters.** Every 31st day of a month is frozen on all channels, ETTh2 has a load sensor stuck for 43 days, and there are ±20 °C single-hour spikes. These are flagged, excluded from scoring, and a stuck load sensor switches the forecast to persistence at run time (a continuity fallback, not necessarily conservative).
+- **Fault detection** from the expected-versus-measured OT residual is **not viable without ambient temperature**: synthetic 3–8 °C cooling faults are detected 0 % of the time (0 of 180).
 
 ## Problem framing
 
@@ -35,11 +36,12 @@ enough to support preventive maintenance, compared with today's threshold monito
 
 ## Evaluation protocol
 
-- **Development data** (targets before 2017-07-01): hyper-parameter tuning (train < 2017-03, validate 2017-03 to 06), alarm thresholds, detector calibration.
-- **Evaluation**: 12 monthly **rolling-origin folds** (Jul 2017 to Jun 2018), expanding training window, every model refit at each origin. All seasons are covered, unlike a single spring test split (Tashman 2000; Hewamalage et al. 2023).
-- **Benchmarks**: persistence (OT(*T*) = OT(*t*); identical to 24 h seasonal naive at this horizon) and a 24 h moving average. Skill is reported **relative to persistence**, and differences are tested with the **Diebold–Mariano** test (HAC variance, Harvey–Leybourne–Newbold correction) because overlapping 24 h forecasts have autocorrelated errors.
-- **No leakage**: all preprocessing is fitted inside each training window; run-time data-quality rules use only past data.
-- **Data quality**: targets that are known artefacts (stuck sensors, spikes, the 31st-day fill) are never trained on or scored; forecasts whose inputs come from a stuck load sensor fall back to persistence (as a deployed system would).
+- **Development data** = everything observed at the first evaluation issue time (2017-06-30 00:00): hyper-parameter tuning (validation targets from 2017-03-01), alarm thresholds, detector calibration.
+- **Evaluation**: 12 monthly **rolling-origin folds** (targets Jul 2017 to Jun 2018), expanding training window. Each month's models are refitted at its **first issue time** (first target − 24 h) using only labels observed by then, then used for the whole month. All seasons are covered, unlike a single spring test split (Tashman 2000; Hewamalage et al. 2023).
+- **Benchmarks**: persistence (OT(*T*) = OT(*t*); identical to 24 h seasonal naive at this horizon) and a 24 h moving average. Skill is reported **relative to persistence**, and differences are tested with the **Diebold–Mariano** test (HAC variance, Harvey–Leybourne–Newbold correction) because overlapping 24 h forecasts have autocorrelated errors. p-values are also **Holm-adjusted** across all comparisons per station.
+- **No leakage**: preprocessing is fitted inside each training window; whether a training label is an artefact is judged with the data available at the refit; run-time data-quality rules and the online bias correction use only past data. Tests check the fold and tuning cutoffs (`tests/`).
+- **Data quality**: targets that are known artefacts (stuck sensors, spikes, the 31st-day fill) are never trained on or scored; forecasts whose inputs come from a stuck load sensor fall back to persistence (as a deployed system would) and carry no prediction interval. Alerts whose ground truth is partly missing are reported as unscorable, not as false.
+- **Load columns**: HUFL/HULL etc. are read as high/middle/low "useful"/"useless" load per the dataset's field descriptions; the voltage-side topology (e.g. HUFL = MUFL + LUFL) is an assumption, used only descriptively.
 
 ## Models
 
@@ -52,17 +54,36 @@ enough to support preventive maintenance, compared with today's threshold monito
 | GBM-robust | GBM without the absolute OT level, with recency weighting (half-life 180 days), against year-to-year drift |
 | Hybrid | GreyBox + GBM-robust trained on the physics model's residual |
 | GBM-peak | GBM-robust with hot targets (top 10 %) up-weighted ×3 |
-| MLP | 2-layer neural network on the engineered features |
+| MLP | 2-layer neural network on the engineered features, early-stopped on the chronologically last 10 % of training data |
 | WindowLinear | DLinear-style linear model on the raw 168 h window (Zeng et al. 2023) |
 | LSTM | Sequence model on the raw past 72 h (+ planned next 24 h for C) |
 | Ensemble | Equal-weight mean of Ridge, GBM-robust, Hybrid |
 | +BC | Causal bias correction: subtract the model's own mean error over the past 7 days |
 | CQR | Conformalized quantile regression (Romano et al. 2019) for 90 % intervals |
 
+## Revision (2026-11-10)
+
+An independent review found a timing leak and several evaluation issues; all were fixed and every
+result regenerated:
+
+- Monthly models were trained on targets up to the end of the previous month, i.e. up to 23 h after
+  the month's first forecast was issued. They are now refitted at that issue time; tuning, CQR
+  calibration, the LSTM and the horizon sweep follow the same rule. Training-row quality labels are
+  computed with the data available at the refit.
+- Development thresholds no longer include the first evaluation day.
+- The load-plan noise study now perturbs only the planned hours (not measured history) and averages
+  5 random draws.
+- Alerts with incomplete ground truth are unscorable rather than false; synthetic faults use one
+  shared, alarm-free onset schedule; the MLP uses chronological early stopping (its earlier
+  −45 % result was an artefact of a random hold-out); CQR uses the exact order statistic;
+  significance is reported with a Holm correction; the LSTM file is checked to belong to the same run.
+
+The headline Ridge result was essentially unchanged (−9.1 % / −4.8 %).
+
 ## Reproduce
 
 ```bash
-make setup          # Python 3.11+; creates .venv, installs pinned requirements and the package
+make setup          # Python 3.12+ (tested on 3.14); creates .venv, installs pinned requirements and the package
 make all            # EDA, experiments, LSTM, horizon sweep, anomaly study, report (~45 min on a laptop CPU)
 make test           # unit tests, incl. no-lookahead checks on features, cleaning and flags (~10 s)
 make lint           # ruff lint + format check

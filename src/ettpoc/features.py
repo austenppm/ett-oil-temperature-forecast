@@ -48,6 +48,10 @@ def calendar(index: pd.DatetimeIndex) -> pd.DataFrame:
     )
 
 
+def ewm_alpha(halflife: float) -> float:
+    return 1 - 0.5 ** (1 / halflife)
+
+
 def noisy_loads(df: pd.DataFrame, sigma: float, seed: int = C.SEED) -> pd.DataFrame:
     """Simulate an imperfect day-ahead load plan: daily bias + hourly noise, both ~sigma."""
     if sigma <= 0:
@@ -64,15 +68,19 @@ def noisy_loads(df: pd.DataFrame, sigma: float, seed: int = C.SEED) -> pd.DataFr
     return df[C.LOAD_COLS] * factor
 
 
-def build(
+def build_features(
     df: pd.DataFrame,
     ot_clean: pd.Series,
-    flags: pd.DataFrame,
     framing: str,
     load_sigma: float = 0.0,
+    seed: int = C.SEED,
     h: int = C.H,
-) -> tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
-    """Return X (features), y (target dOT), meta (times, truth, flags) aligned on issue time t."""
+) -> pd.DataFrame:
+    """Features of every issue time t whose inputs are available (no label needed).
+
+    This is what a live system computes: it needs measurements up to t and, in framing C,
+    the load plan over (t, T].
+    """
     ot = ot_clean
     X = pd.DataFrame(index=df.index)
 
@@ -90,7 +98,7 @@ def build(
         X[f"{c}_now"] = df[c]
     X["s2_now"] = s2
     for hl in S2_HALFLIVES:
-        X[f"s2_ewm{hl}_now"] = s2.ewm(halflife=hl).mean()
+        X[f"s2_ewm{hl}_now"] = s2.ewm(halflife=hl, adjust=False).mean()
     X["s2_diff_24h"] = s2 - s2.shift(24)
 
     # --- calendar of the target time (deterministic, always known) ---
@@ -100,26 +108,43 @@ def build(
 
     # --- planned loads over (t, T] (framing C only) ---
     if framing == "C":
-        plan = noisy_loads(df, load_sigma)
+        plan = noisy_loads(df, load_sigma, seed)
         s2p = apparent_power_sq(plan)
         for c in C.LOAD_COLS:
             X[f"{c}_T"] = plan[c].shift(-h)
         X["s2_T"] = s2p.shift(-h)
         X["s2_mean_next24"] = s2p.rolling(h).mean().shift(-h)
         X["s2_max_next24"] = s2p.rolling(h).max().shift(-h)
-        # Thermal-memory features at T (EWMA of S^2 up to the target time).
-        # Approximation for the noise study: the EWMA runs over the perturbed series,
-        # so history before t is perturbed too; with halflives <= 48 h the plan
-        # window dominates, and with load_sigma == 0 the feature is exact.
+        # Thermal-memory features at T: the EWMA state measured at t, advanced over the
+        # planned hours (t, T] only. Plan error therefore never alters measured history,
+        # and with load_sigma == 0 this equals the EWMA of the actual load at T.
         for hl in S2_HALFLIVES:
-            X[f"s2_ewm{hl}_T"] = s2p.ewm(halflife=hl).mean().shift(-h)
+            a = ewm_alpha(hl)
+            advance = sum(a * (1 - a) ** (h - j) * s2p.shift(-j) for j in range(1, h + 1))
+            X[f"s2_ewm{hl}_T"] = (1 - a) ** h * X[f"s2_ewm{hl}_now"] + advance
             X[f"s2_ewm{hl}_change"] = X[f"s2_ewm{hl}_T"] - X[f"s2_ewm{hl}_now"]
     elif framing != "B":
         raise ValueError(f"unknown framing {framing!r}")
+    return X[X.notna().all(axis=1)]
 
+
+def build(
+    df: pd.DataFrame,
+    ot_clean: pd.Series,
+    flags: pd.DataFrame,
+    framing: str,
+    load_sigma: float = 0.0,
+    seed: int = C.SEED,
+    h: int = C.H,
+) -> tuple[pd.DataFrame, pd.Series, pd.DataFrame]:
+    """X (features), y (target dOT), meta (times, truth, flags) for rows with a known label.
+
+    For offline training and evaluation; aligned on issue time t.
+    """
+    X = build_features(df, ot_clean, framing, load_sigma, seed, h).reindex(df.index)
     meta = pd.DataFrame(index=df.index)
     meta["target_time"] = df.index + pd.Timedelta(hours=h)
-    meta["ot_now"] = ot
+    meta["ot_now"] = ot_clean
     meta["ot_true"] = df.OT.shift(-h)
     meta["bad_target"] = flags.bad_target.shift(-h, fill_value=True)
     # Run-time fallback trigger: a load sensor looks stuck at issue time
@@ -146,10 +171,10 @@ def raw_window(
     """Raw lag window for a DLinear-style linear model (Zeng et al., 2023).
 
     Past `lookback` hours of OT (relative to OT(t)) and of S^2; framing C adds the
-    planned S^2 over (t, T]. No hand-crafted features.
+    planned S^2 over (t, T]. No hand-crafted features. Unscaled: the model standardises
+    its inputs on its own training rows.
     """
     s2 = apparent_power_sq(df)
-    s2 = s2 / s2[: C.EVAL_START].mean()
     cols = {f"ot_lag{k}": ot_clean.shift(k) - ot_clean for k in range(1, lookback)}
     cols.update({f"s2_lag{k}": s2.shift(k) for k in range(lookback)})
     if framing == "C":

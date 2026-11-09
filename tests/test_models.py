@@ -4,7 +4,7 @@ import pytest
 
 from ettpoc import config as C
 from ettpoc.features import apparent_power_sq
-from ettpoc.models import CQR, GreyBoxThermal
+from ettpoc.models import CQR, GreyBoxThermal, conformal_quantile
 
 
 def test_cqr_reaches_nominal_coverage_under_heteroscedastic_noise():
@@ -40,3 +40,10 @@ def test_greybox_recovers_the_thermal_time_constant():
     model.fit(issue, ot.shift(-C.H)[issue].to_numpy())
     assert model.tau == tau
     assert model.coefficients()["s2"] > 0
+
+
+def test_conformal_quantile_is_the_exact_order_statistic():
+    scores = np.arange(1.0, 11.0)
+    assert conformal_quantile(scores, alpha=0.2) == 9.0  # ceil(11 * 0.8) = 9th smallest
+    with pytest.raises(ValueError):
+        conformal_quantile(scores, alpha=0.05)  # needs the 11th of 10 scores

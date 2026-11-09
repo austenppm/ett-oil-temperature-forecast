@@ -2,11 +2,16 @@
 
 from pathlib import Path
 
+import pandas as pd
+
 ROOT = Path(__file__).resolve().parents[2]
 DATA_DIR = ROOT / "data"
 OUT_DIR = ROOT / "outputs"
 FIG_DIR = OUT_DIR / "figures"
 TAB_DIR = OUT_DIR / "tables"
+# Run identity: written by the experiment, copied by the LSTM run, checked by the report.
+RUN_ID_FILE = OUT_DIR / "run_id.txt"
+NN_RUN_ID_FILE = OUT_DIR / "predictions_nn.run_id.txt"
 
 # Upstream source of the ETT-small data (CC BY-ND 4.0, Zhou et al., AAAI 2021).
 # The files supplied with the assignment are byte-identical to these.
@@ -25,11 +30,14 @@ FRAMINGS = ("B", "C")
 # Load-plan error levels (relative sigma) for the framing-C robustness study.
 NOISE_SIGMAS = (0.05, 0.10, 0.20)
 
-# Chronology (by TARGET time). Everything before EVAL_START is "development" data:
-# hyper-parameters, thresholds and alert levels are chosen there only.
-TUNE_VAL_START = "2017-03-01"  # tuning: train < this, validate [this, EVAL_START)
+# Chronology. Test windows are defined by TARGET time; a model is fitted at the first
+# issue time of its window (target start - H) using only labels observed by then.
+TUNE_VAL_START = "2017-03-01"  # tuning: validate on targets [this, EVAL_START)
 EVAL_START = "2017-07-01"  # rolling-origin evaluation: 12 monthly folds
 EVAL_END = "2018-06-27"
+# Development data = everything observed at the first evaluation issue time. Thresholds,
+# alert levels and calibration use only these hours.
+DEV_END = pd.Timestamp(EVAL_START) - pd.Timedelta(hours=H)
 
 # Data-quality rules
 STUCK_LOAD_HOURS = 24  # a load channel unchanged for >= 24 h is treated as a stuck sensor

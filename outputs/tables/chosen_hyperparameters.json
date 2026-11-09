@@ -5,10 +5,9 @@
         "alpha": 1000
       },
       "GBM": {
-        "learning_rate": 0.03,
-        "max_leaf_nodes": 31,
-        "min_samples_leaf": 100,
-        "max_iter": 500
+        "learning_rate": 0.05,
+        "max_leaf_nodes": 15,
+        "min_samples_leaf": 50
       },
       "WindowLinear": {
         "alpha": 10000
@@ -34,10 +33,9 @@
         "alpha": 1000
       },
       "GBM": {
-        "learning_rate": 0.03,
+        "learning_rate": 0.05,
         "max_leaf_nodes": 31,
-        "min_samples_leaf": 100,
-        "max_iter": 500
+        "min_samples_leaf": 50
       },
       "WindowLinear": {
         "alpha": 10000
@@ -49,7 +47,7 @@
       },
       "GBM": {
         "learning_rate": 0.05,
-        "max_leaf_nodes": 15,
+        "max_leaf_nodes": 31,
         "min_samples_leaf": 50
       },
       "WindowLinear": {

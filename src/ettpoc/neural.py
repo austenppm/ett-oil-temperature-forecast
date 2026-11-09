@@ -18,8 +18,8 @@ import torch
 from torch import nn
 
 from . import config as C
-from .data import clean_ot_causal, load_station, quality_flags
-from .evaluation import monthly_folds
+from .data import bad_targets_known_at, clean_ot_causal, load_station, quality_flags, valid_at
+from .evaluation import fold_masks, label_cutoff, monthly_folds
 from .experiment import Fold
 from .features import apparent_power_sq, build, calendar, cyclic
 
@@ -85,14 +85,21 @@ def to_tensors(arrays, rows) -> list:
 
 
 def fit_predict(df, ot, pos_train, y_train, pos_test, framing) -> np.ndarray:
-    """Train a SeqNet with early stopping and return its dOT forecasts for `pos_test`."""
+    """Train a SeqNet with early stopping and return its dOT forecasts for `pos_test`.
+
+    Early stopping uses the chronologically last 10 % of the training rows, separated from
+    the fitting rows by H rows so that no fitting target falls inside the validation period;
+    the scaler is estimated on the fitting rows only.
+    """
+    n_val = len(pos_train) // 10
+    n_fit = len(pos_train) - n_val - C.H
+    val = slice(len(pos_train) - n_val, len(pos_train))
+    fit = pos_train[:n_fit]
     scaler = Scaler(
-        df[C.LOAD_COLS].to_numpy()[pos_train], apparent_power_sq(df).to_numpy()[pos_train], y_train
+        df[C.LOAD_COLS].to_numpy()[fit], apparent_power_sq(df).to_numpy()[fit], y_train[:n_fit]
     )
     inputs = model_inputs(df, ot, pos_train, framing, scaler)
     y = torch.tensor(y_train / scaler.d_ot_sd, dtype=torch.float32)
-    n_fit = len(pos_train) - len(pos_train) // 10  # last 10 % (chronologically) for early stopping
-    val = slice(n_fit, len(pos_train))
 
     past, future, static = inputs
     net = SeqNet(past.shape[2], 0 if future is None else future.shape[2], static.shape[1])
@@ -135,10 +142,12 @@ def run_station(name: str) -> pd.DataFrame:
         X, y, meta = build(df, ot, flags, fr)
         pos = df.index.get_indexer(X.index)
         tt = meta.target_time
-        usable = (~meta.bad_target & ~meta.input_flagged).to_numpy() & (pos >= LOOKBACK)
+        usable = (~meta.input_flagged).to_numpy() & (pos >= LOOKBACK)
         for start, end in monthly_folds():
-            train = usable & (tt < start).to_numpy()
-            test = ((tt >= start) & (tt < end)).to_numpy()
+            available, test = fold_masks(tt, start, end)
+            label_ok = valid_at(bad_targets_known_at(df, label_cutoff(start)), tt)
+            train = usable & available.to_numpy() & label_ok
+            test = test.to_numpy()
             delta = fit_predict(df, ot, pos[train], y.to_numpy()[train], pos[test], fr)
             frames.append(Fold(name, fr, start, meta[test]).predictions("LSTM", delta))
         print(f"  {name} LSTM framing {fr} done ({time.time() - t0:.0f}s)")
@@ -148,8 +157,10 @@ def run_station(name: str) -> pd.DataFrame:
 def main() -> None:
     torch.manual_seed(C.SEED)
     torch.set_num_threads(TORCH_THREADS)
+    run_id = C.RUN_ID_FILE.read_text()  # the tabular run these predictions belong to
     out = pd.concat([run_station(n) for n in C.STATIONS], ignore_index=True)
     out.to_csv(C.OUT_DIR / "predictions_nn.csv.gz", index=False)
+    C.NN_RUN_ID_FILE.write_text(run_id)
     print("saved", len(out), "rows")
 
 
