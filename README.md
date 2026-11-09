@@ -1,130 +1,119 @@
-# Transformer Oil-Temperature Forecasting PoC (ETT dataset)
+# 変圧器油温予測 PoC（ETT データセット）
 
-**English** | [日本語](README.ja.md)
+**日本語** | [English](README.en.md)
 
-Can a model forecast a power transformer's **oil temperature (OT) 24 hours ahead** well
-enough to support preventive maintenance, compared with today's threshold monitoring?
+電力用変圧器の **24 時間後の油温（OT）** を予測し、現行の閾値監視と比べて予防保全に役立つ精度が得られるかを検証しました。
 
-- **Report (client-facing slides):** [English](slides/ETT_PoC_Report_EN.pdf) | [日本語](slides/ETT_PoC_Report_JA.pdf)
-- **Code:** `src/ettpoc/` (Python, reproducible with one command)
-- **Contact:** austenppm12345.career@gmail.com
+- **報告スライド（クライアント向け）：** [日本語](slides/ETT_PoC_Report_JA.pdf) | [English](slides/ETT_PoC_Report_EN.pdf)
+- **コード：** `src/ettpoc/`（Python、コマンド 1 つで再現可能）
+- **連絡先：** austenppm12345.career@gmail.com
 
-**Quick start** (macOS/Linux, Python 3.12+):
+**クイックスタート**（macOS / Linux、Python 3.12 以上）：
 
 ```bash
-make        # shows the available commands
-make test   # first run sets up .venv automatically, then runs the 25 tests (~2 min)
-make all    # regenerates every table and figure in 6 numbered stages (~45 min, shows progress)
+make        # 使えるコマンドの一覧を表示
+make test   # 初回は .venv を自動で構築し、25 件のテストを実行（約 2 分）
+make all    # 6 段階ですべての表と図を再生成（約 45 分、進捗を表示）
 ```
 
-There is no separate setup step: whichever command you run first creates the environment.
+環境構築のための別コマンドはありません。最初に実行したコマンドが環境を自動で構築します。
 
-## Key results (evaluation year Jul 2017 – Jun 2018, 12 monthly rolling folds)
+## 主な結果（評価期間 2017 年 7 月〜2018 年 6 月、月次ローリング 12 分割）
 
 | | ETTh1 | ETTh2 |
 |---|---|---|
-| Persistence MAE, 24 h ahead | 1.76 °C | 3.25 °C |
-| **Ridge** (physics features + load plan) | **1.60 °C (−9.1 %, Holm-adjusted DM p < 0.001)** | **3.09 °C (−4.8 %, p = 0.004; Holm-adjusted 0.10)** |
-| Equal-weight ensemble (C) | 1.65 °C (−6.4 %) | **3.06 °C (−5.8 %, best on ETTh2)** |
-| Best skill at shorter lead times (vs. best naive benchmark) | 22 % at 12 h | 53 % at 1–3 h |
-| 90 % interval coverage: quantile regression → conformalized (CQR) | 84 % → 90 % | 75 % → 91 % |
+| 現在値維持（persistence）の 24 時間先 MAE | 1.76 ℃ | 3.25 ℃ |
+| **Ridge**（物理特徴量＋負荷計画） | **1.60 ℃（−9.1 %、Holm 補正後の DM 検定 p < 0.001）** | **3.09 ℃（−4.8 %、p = 0.004、Holm 補正後 0.10）** |
+| 等重みアンサンブル（C） | 1.65 ℃（−6.4 %） | **3.06 ℃（−5.8 %、ETTh2 で最良）** |
+| より短い先行時間での最大改善率（最良の単純予測比） | 12 時間先で 22 % | 1〜3 時間先で 53 % |
+| 90 % 予測区間の被覆率：分位点回帰 → コンフォーマル補正（CQR） | 84 % → 90 % | 75 % → 91 % |
 
-- **Early warning (ETTh2, 15 hot-spell onsets):** an **Ensemble (C)** alarm that fires when the forecast is within 4 °C of the proxy alarm level warns **80 % of onsets a median 23 h ahead** with ~10 false alert-hours per month (5 °C: 93 %, ~16 h). Today's threshold alarm gives 0 h warning. The margin was read off the evaluation-year curve, so this is an exploratory operating point, not a validated policy.
-- **Complex models did not win.** GBM, LSTM, MLP, a physics + ML hybrid and bias correction did not beat Ridge on ETTh1; on ETTh2 the ensemble leads Ridge by one point. Only Ridge on ETTh1 stays significant after a Holm correction across all 25 comparisons with persistence per station (24 model variants plus the 24 h moving average). Our hypothesis is that input information limits accuracy more than model capacity: **ambient temperature is not in the data** and appears to drive the daily cycle.
-- **Data quality matters.** Every 31st day of a month is frozen on all channels, ETTh2 has a load sensor stuck for 43 days, and there are ±20 °C single-hour spikes. These are flagged, excluded from scoring, and a stuck load sensor switches the forecast to persistence at run time (a continuity fallback, not necessarily conservative).
-- **Fault detection** from the expected-versus-measured OT residual is **not viable without ambient temperature**: synthetic 3–8 °C cooling faults are detected 0 % of the time (0 of 180).
+- **過熱の事前警告（ETTh2、過熱開始 15 件）：** **アンサンブル（C）** の予測値が代理警報値の 4 ℃ 手前に達した時点で警告すると、**過熱開始の 80 % を中央値 23 時間前に予告**でき、誤報は月約 10 時間（5 ℃ では 93 %、約 16 時間）。現行の閾値監視の先行時間は 0 時間。余裕幅は評価年の曲線から読んだ探索的な設定で、検証済みの運用ルールではない。
+- **複雑なモデルは勝てなかった。** GBM・LSTM・MLP・物理＋ML ハイブリッド・バイアス補正は ETTh1 で Ridge を上回らず、ETTh2 ではアンサンブルが Ridge を 1 ポイント上回った。各変電所 25 比較（24 のモデル設定＋24 時間移動平均）の Holm 補正後も有意なのは ETTh1 の Ridge のみ。精度を制約しているのはモデルの表現力より入力情報であり、**外気温がデータに含まれていない**ことが主因という仮説を立てている。
+- **データ品質が重要。** 毎月 31 日は全項目が凍結しており、ETTh2 には 43 日間固着した負荷センサ、1 時間で ±20 ℃ のスパイクがある。これらは検知して評価から除外し、負荷センサ固着時は運用でも現在値維持に切り替える（継続性のための代替で、安全側とは限らない）。
+- **異常検知：** 期待油温と実測の差による冷却異常検知は**外気温なしでは実用水準に届かない**。3〜8 ℃ の擬似故障の検知率は 0 %（180 件中 0 件）。
 
-## Problem framing
+## 問題設定
 
 | | |
 |---|---|
-| Target | OT at **T = t + 24 h**, forecast issued at hour *t* |
-| Framing **B** (strict) | Only data measured up to *t* (plus the calendar of *T*) |
-| Framing **C** (what-if) | Also the load profile over (*t*, *T*], interpreted as the operator's **day-ahead load plan**. The brief explicitly allows features at the target time; we state the availability assumption and test its sensitivity to plan error. |
-| Model target | Δ OT = OT(*T*) − OT(*t*), which is far more stationary than the level |
-| Stations | ETTh1 and ETTh2 (hourly). ETTm1/ETTm2 are the same two transformers at 15-min resolution (their on-the-hour rows equal ETTh1/ETTh2 exactly); hourly resolution is assumed sufficient for a 24 h-ahead decision, so ETTm* were not modelled. |
+| 予測対象 | 時点 *t* に発行し、**T = t + 24 h** の油温を予測 |
+| 設定 **B**（厳密） | 時点 *t* までの実測のみ（＋時刻 *T* のカレンダー） |
+| 設定 **C**（計画活用） | （*t*, *T*] の負荷も使用。これを運用者の**翌日の負荷計画**と解釈する。課題では t = T の特徴量の使用が明示的に許可されており、入手可能性の仮定を明記したうえで計画誤差への感度を検証した。 |
+| モデルの目的変数 | ΔOT = OT(*T*) − OT(*t*)。水準そのものより定常性がはるかに高い |
+| 対象変圧器 | ETTh1・ETTh2（1 時間値）。ETTm1・ETTm2 は同じ変圧器の 15 分値（毎正時の値は ETTh1・ETTh2 と完全一致）。24 時間先の判断には 1 時間解像度で十分と仮定し、ETTm はモデル化していない。 |
 
-## Evaluation protocol
+## 評価方法
 
-- **Development data** = everything observed at the first evaluation issue time (2017-06-30 00:00): hyper-parameter tuning (validation targets from 2017-03-01), alarm thresholds, detector calibration.
-- **Evaluation**: 12 monthly **rolling-origin folds** (targets Jul 2017 to Jun 2018), expanding training window. Each month's models are refitted at its **first issue time** (first target − 24 h) using only labels observed by then, then used for the whole month. All seasons are covered, unlike a single spring test split (Tashman 2000; Hewamalage et al. 2023).
-- **Benchmarks**: persistence (OT(*T*) = OT(*t*); identical to 24 h seasonal naive at this horizon) and a 24 h moving average. Skill is reported **relative to persistence**, and differences are tested with the **Diebold–Mariano** test (HAC variance, Harvey–Leybourne–Newbold correction) because overlapping 24 h forecasts have autocorrelated errors. p-values are also **Holm-adjusted** across all comparisons per station.
-- **No leakage**: preprocessing is fitted inside each training window; whether a training label is an artefact is judged with the data available at the refit; run-time data-quality rules and the online bias correction use only past data. Tests check the fold and tuning cutoffs (`tests/`).
-- **Data quality**: targets that are known artefacts (stuck sensors, spikes, the 31st-day fill) are never trained on or scored; forecasts whose inputs come from a stuck load sensor fall back to persistence (as a deployed system would) and carry no prediction interval. Alerts whose ground truth is partly missing are reported as unscorable, not as false.
-- **Load columns**: HUFL/HULL etc. are read as high/middle/low "useful"/"useless" load per the dataset's field descriptions; the voltage-side topology (e.g. HUFL = MUFL + LUFL) is an assumption, used only descriptively.
+- **開発データ** ＝ 最初の評価予測時点（2017-06-30 00:00）までに観測されたデータ：ハイパーパラメータ調整（検証対象は 2017-03-01 以降）、警報閾値、検知器の校正。
+- **評価**：月次の**ローリング・オリジン 12 分割**（予測対象 2017 年 7 月〜2018 年 6 月）。学習窓は拡張し、各月のモデルはその月の**最初の予測時点**（最初の対象時刻 − 24 時間）で、その時点までに観測された正解のみを使って再学習し、その月全体に用いる。単一の春季テストと異なり全季節をカバーする（Tashman 2000、Hewamalage et al. 2023）。
+- **基準**：現在値維持（OT(*T*) = OT(*t*)。この先行時間では 24 時間周期の季節ナイーブと同一）と 24 時間移動平均。スキルは**現在値維持比**で示し、24 時間の重複予測は誤差が自己相関するため、差は **Diebold–Mariano 検定**（HAC 分散、Harvey–Leybourne–Newbold 補正）で検定する。p 値は各変電所の全比較について **Holm 法**でも補正する。
+- **リーク防止**：前処理は各学習窓の中で計算し、学習に使う正解が異常値かどうかは再学習時点で入手可能なデータで判定する。運用時のデータ品質判定とオンラインのバイアス補正は過去データのみを使う。分割と調整の時点はテストで検証（`tests/`）。
+- **データ品質**：既知の異常値（センサ固着・スパイク・31 日の補完）は学習にも評価にも使わない。入力の負荷センサが固着している予測は、運用時と同様に現在値維持に切り替え、予測区間は付与しない。真値の一部が欠測の警告は誤報ではなく判定不能として扱う。
+- **負荷列**：HUFL・HULL などはデータセットの説明に従い高・中・低圧の有効／無効負荷と解釈した。電圧側の関係（例：HUFL = MUFL + LUFL）は仮定であり、記述目的でのみ使用。
 
-## Models
+## モデル
 
-| Model | Idea |
+| モデル | 概要 |
 |---|---|
-| Persistence, MovingAvg24 | Benchmarks |
-| GreyBox | Discretised IEC 60076-7 first-order top-oil model; time constant τ and load gain learned from data; ambient (unmeasured) approximated by calendar harmonics and weekly mean OT |
-| Ridge | Linear model on physics-motivated features (S² = useful² + useless² ∝ current², EWMAs of S² at 3/12/48 h half-lives, OT dynamics, calendar) |
-| GBM | Histogram gradient boosting (LightGBM-style) on the same features |
-| GBM-robust | GBM without the absolute OT level, with recency weighting (half-life 180 days), against year-to-year drift |
-| Hybrid | GreyBox + GBM-robust trained on the physics model's residual |
-| GBM-peak | GBM-robust with hot targets (top 10 %) up-weighted ×3 |
-| MLP | 2-layer neural network on the engineered features, early-stopped on the chronologically last 10 % of training data |
-| WindowLinear | DLinear-style linear model on the raw 168 h window (Zeng et al. 2023) |
-| LSTM | Sequence model on the raw past 72 h (+ planned next 24 h for C) |
-| Ensemble | Equal-weight mean of Ridge, GBM-robust, Hybrid |
-| +BC | Causal bias correction: subtract the model's own mean error over the past 7 days |
-| CQR | Conformalized quantile regression (Romano et al. 2019) for 90 % intervals |
+| Persistence, MovingAvg24 | 基準（現在値維持、24 時間移動平均） |
+| GreyBox | IEC 60076-7 の一次遅れ上部油温モデルを離散化。時定数 τ と負荷係数をデータから学習。外気温（未計測）は季節・時刻の調和関数と週平均油温で代用 |
+| Ridge | 物理に基づく特徴量（S² = 有効² + 無効² ∝ 電流²、半減期 3/12/48 h の S² の指数平滑、油温の動き、カレンダー）による線形モデル |
+| GBM | 同じ特徴量によるヒストグラム勾配ブースティング（LightGBM 型） |
+| GBM-robust | 油温水準を除外し、直近データを重視（半減期 180 日）した GBM。年次ドリフト対策 |
+| Hybrid | GreyBox ＋ その残差を学習する GBM-robust |
+| GBM-peak | 高温の目的値（上位 10 %）を 3 倍に重み付けした GBM-robust |
+| MLP | 特徴量による 2 層ニューラルネット。学習データの時系列末尾 10 % で早期終了 |
+| WindowLinear | 過去 168 時間の生ウィンドウによる DLinear 型線形モデル（Zeng et al. 2023） |
+| LSTM | 過去 72 時間の生系列（C では翌 24 時間の計画も）による系列モデル |
+| Ensemble | Ridge・GBM-robust・Hybrid の等重み平均 |
+| +BC | 因果的バイアス補正：直近 7 日の自モデルの平均誤差を差し引く |
+| CQR | 90 % 予測区間のためのコンフォーマル化分位点回帰（Romano et al. 2019） |
 
-## Revision (2026-11-10)
+## 改訂（2026-11-10）
 
-An independent review found a timing leak and several evaluation issues; all were fixed and every
-result regenerated:
+第三者レビューで時点のリークと評価上の問題が見つかったため、すべて修正し全結果を再生成した。
 
-- Monthly models were trained on targets up to the end of the previous month, i.e. up to 23 h after
-  the month's first forecast was issued. They are now refitted at that issue time; tuning, CQR
-  calibration, the LSTM and the horizon sweep follow the same rule. Training-row quality labels are
-  computed with the data available at the refit.
-- Development thresholds no longer include the first evaluation day.
-- The load-plan noise study now perturbs only the planned hours (not measured history) and averages
-  5 random draws.
-- Alerts with incomplete ground truth are unscorable rather than false; synthetic faults use one
-  shared, alarm-free onset schedule; the MLP uses chronological early stopping (its earlier
-  −45 % result was an artefact of a random hold-out); CQR uses the exact order statistic;
-  significance is reported with a Holm correction; the LSTM file is checked to belong to the same run.
+- 各月のモデルは前月末までの対象時刻、つまりその月の最初の予測時点から最大 23 時間後の正解まで学習に使っていた。現在はその予測時点で再学習している。ハイパーパラメータ調整・CQR の校正・LSTM・先行時間スイープも同じ規則に従う。学習行の品質判定は再学習時点で入手可能なデータで行う。
+- 開発期間の閾値に評価初日が含まれていた点を修正。
+- 負荷計画の誤差検証は計画部分のみを摂動し（過去の実測は変えない）、5 回の乱数で平均。
+- 真値が不完全な警告は判定不能として扱う。擬似故障は全条件共通で警報のない発生時刻を使う。MLP は時系列順の早期終了に変更（以前の −45 % はランダムな検証分割による誤り）。CQR は厳密な順位統計量を使用。有意性は Holm 補正も併記。LSTM の出力が同じ実行に属することを検証。
 
-The headline Ridge result was essentially unchanged (−9.1 % / −4.8 %).
+主要結果の Ridge（−9.1 % / −4.8 %）はほぼ変わらなかった。
 
-## Reproduce
+## 再現手順
 
 ```bash
-make                # list of commands (Python 3.12+, tested on 3.14; the first command creates .venv)
-make all            # EDA, experiments, LSTM, horizon sweep, anomaly study, report (~45 min on a laptop CPU)
-make test           # unit tests, incl. no-lookahead checks on features, cleaning and flags (~10 s)
-make lint           # ruff lint + format check
-make slides         # both report PDFs (xelatex + Hiragino Sans, i.e. macOS)
+make                # コマンド一覧（Python 3.12 以上、3.14 で検証。最初のコマンドが .venv を構築）
+make all            # EDA、実験、LSTM、先行時間スイープ、異常検知、レポート（ノート PC の CPU で約 45 分）
+make test           # 単体テスト（特徴量・クリーニング・フラグが未来を参照しないことの検証を含む、約 10 秒）
+make lint           # ruff による lint とフォーマット確認
+make slides         # 日英両方の報告 PDF（xelatex と Hiragino Sans、つまり macOS が必要）
 ```
 
-Data are downloaded on first run from the upstream ETDataset repository and verified by SHA-256
-(they are byte-identical to the files supplied with the assignment). Outputs land in
-`outputs/figures/` and `outputs/tables/`.
+データは初回実行時に上流の ETDataset リポジトリからダウンロードし、SHA-256 で検証します（課題で配布されたファイルとバイト単位で同一）。出力は `outputs/figures/` と `outputs/tables/` に保存されます。
 
 ```
 src/ettpoc/
-  config.py       paths, data source, chronology, rules
-  data.py         loading, SHA-256 check, data-quality flags (retrospective + causal)
-  features.py     feature construction for framings B and C, raw windows
-  models.py       Ridge / GBM / MLP factories, grey-box thermal model, CQR
-  evaluation.py   metrics, Diebold–Mariano, alert simulation
-  eda.py          EDA figures and summary table
-  experiment.py   tuning + 12-fold rolling-origin evaluation of all tabular models
-  neural.py       LSTM on raw windows (same folds and rows)
-  horizons.py     1–48 h horizon sweep
-  anomaly.py      residual-based fault detection study
-  report.py       ensemble, bias correction, tables and figures for the report
-tests/            pytest: leakage (features ignore the future), data-quality rules,
-                  Diebold–Mariano, alert episodes, CQR coverage, grey-box tau recovery
-slides/           LaTeX sources of the report, Japanese and English (xelatex), and the PDFs
+  config.py       パス、データ取得元、期間区分、各種ルール
+  data.py         読み込み、SHA-256 検証、データ品質フラグ（事後判定＋因果的判定）
+  features.py     設定 B・C の特徴量、生ウィンドウ
+  models.py       Ridge / GBM / MLP の生成、グレーボックス熱モデル、CQR
+  evaluation.py   指標、Diebold–Mariano 検定、警告シミュレーション
+  eda.py          EDA の図と要約表
+  experiment.py   全表形式モデルの調整と 12 分割ローリング評価
+  neural.py       生ウィンドウによる LSTM（同じ分割・同じ行）
+  horizons.py     1〜48 時間の先行時間スイープ
+  anomaly.py      残差ベースの異常検知の検証
+  report.py       アンサンブル、バイアス補正、報告用の表と図
+tests/            pytest：リーク（特徴量が未来を参照しない）、データ品質ルール、
+                  Diebold–Mariano 検定、警告エピソード、CQR 被覆率、グレーボックスの τ 推定
+slides/           報告スライドの LaTeX ソース（日本語・英語、xelatex）と PDF
 docs/REFERENCES.md
 ```
 
-## Data and licence
+## データとライセンス
 
-ETT-small by Zhou et al. (AAAI 2021), CC BY-ND 4.0, https://github.com/zhouhaoyi/ETDataset.
-The data are not redistributed in this repository; the code downloads them from the source.
-Full reference list: [`docs/REFERENCES.md`](docs/REFERENCES.md).
+ETT-small（Zhou et al., AAAI 2021）、CC BY-ND 4.0、https://github.com/zhouhaoyi/ETDataset 。
+データは本リポジトリでは再配布せず、コードが取得元からダウンロードします。
+参考文献の一覧：[`docs/REFERENCES.md`](docs/REFERENCES.md)。
