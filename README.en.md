@@ -13,7 +13,7 @@ enough to support preventive maintenance, compared with today's threshold monito
 
 ```bash
 make        # shows the available commands
-make test   # first run sets up .venv automatically, then runs the 25 tests (~2 min)
+make test   # first run sets up .venv automatically, then runs the 27 tests (~2 min)
 make all    # regenerates every table and figure in 6 numbered stages (~45 min, shows progress)
 ```
 
@@ -30,7 +30,7 @@ There is no separate setup step: whichever command you run first creates the env
 | 90 % interval coverage: quantile regression → conformalized (CQR) | 84 % → 90 % | 75 % → 91 % |
 
 - **Early warning (ETTh2, 15 overheating events):** an **Ensemble (C)** alarm that fires when the forecast is within 5 °C of the proxy alarm level warns **12 of 15 events (80 %) at least 12 h ahead** (most about a day ahead), with about **3 false alarms per month** (consecutive alert hours count as one alarm). Today's threshold alarm gives no advance warning. Warnings come either about a day or only 1–2 h before an event, so the share warned ≥12 h ahead is reported rather than a median lead time. The margin was read off the evaluation-year curve, so this is an exploratory operating point, not a validated policy.
-- **Complex models did not win.** GBM, LSTM, MLP, a physics + ML hybrid and bias correction did not beat Ridge on ETTh1; on ETTh2 the ensemble leads Ridge by one point. Only Ridge on ETTh1 stays significant after a Holm correction across all 25 comparisons with persistence per station (24 model variants plus the 24 h moving average). Our hypothesis is that input information limits accuracy more than model capacity: **ambient temperature is not in the data** and appears to drive the daily cycle.
+- **Complex models did not win.** GBM, LSTM, MLP, a physics + ML hybrid and bias correction did not beat Ridge on ETTh1; on ETTh2 the ensemble leads Ridge by one point. Only Ridge with the plan on ETTh1 and Ridge without the plan on ETTh2 stay significant after a Holm correction across all 25 comparisons with persistence per station (24 model variants plus the 24 h moving average). Our hypothesis is that input information limits accuracy more than model capacity: **ambient temperature is not in the data** and appears to drive the daily cycle.
 - **Data quality matters.** Every 31st day of a month is frozen on all channels, ETTh2 has a load sensor stuck for 43 days, and there are ±20 °C single-hour spikes. These are flagged, excluded from scoring, and a stuck load sensor switches the forecast to persistence at run time (a continuity fallback, not necessarily conservative).
 - **Fault detection** from the expected-versus-measured OT residual is **not viable without ambient temperature**: synthetic 3–8 °C cooling faults are detected 0 % of the time (0 of 180).
 

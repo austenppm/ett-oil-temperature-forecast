@@ -22,7 +22,7 @@
 \begin{frame}{Forecast alerts warn of 80\% of overheating $\geq$12 h ahead, but improve accuracy by only 4--9\%; deployment needs ambient data}
   \kpi{−9.1\%}{24 h error vs.\\persistence (ETTh1)}{accent}\hfill
   \kpi{80\%}{Warned $\geq$12 h ahead\\(ETTh2, 12 of 15)}{good}\hfill
-  \kpi{$\sim$3/month}{False alarms\\(5 °C margin)}{accent2}\hfill
+  \kpi{3/month}{False alarms\\(5 °C margin)}{accent2}\hfill
   \kpi{0 h}{Lead time of today's\\threshold alarm}{bad}
   \vspace{0.2cm}
   \begin{columns}[T]
@@ -293,10 +293,10 @@
 
 % ------------------------------------------------------------------ 12 uncertainty
 \settag{Business value ② Communicating uncertainty}
-\begin{frame}{The quantile-regression ``90\% interval'' actually covered only 75--84\%, but conformal calibration brought it to about 90\% in every month}
+\begin{frame}{The quantile-regression ``90\% interval'' actually covered only 75--84\%, but conformal calibration brought it to 90\% overall (81--97\% by month)}
   \begin{columns}[T]
     \begin{column}{0.58\textwidth}
-      \includegraphics[width=\textwidth]{res_coverage}
+      \includegraphics[width=\textwidth,height=4.4cm,keepaspectratio]{res_coverage}
     \end{column}
     \begin{column}{0.40\textwidth}
       \scriptsize
@@ -311,7 +311,7 @@
         Width ETTh2 & 9.0 °C & 13.0 °C \\
         \bottomrule
       \end{tabular}
-      \vspace{0.2cm}
+      \vspace{0.1cm}
       \begin{itemize}\setlength{\itemsep}{2pt}
         \item Raw coverage drops to 58\% in some ETTh2 months: \hl{check stated confidence on real data} before maintenance use
         \item Width (ETTh2 about ±6.5 °C) likely reflects the missing ambient temperature

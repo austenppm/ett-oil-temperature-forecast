@@ -21,7 +21,7 @@
 \settag{エグゼクティブサマリー}
 \begin{frame}{予測アラートで過熱の80\%を12時間以上前に予告できる。ただし精度向上は誤差4〜9\%に留まり、本格導入には外気温データが必要}
   \kpi{−9.1\%}{24h先予測誤差（ETTh1）\\「現在値維持」比}{accent}\hfill
-  \kpi{80\%}{過熱を12h以上前に警告\\（ETTh2、15件中12件）}{good}\hfill
+  \kpi{80\%}{12h以上前に警告\\（ETTh2、15件中12件）}{good}\hfill
   \kpi{3回/月}{誤報\\（余裕幅5℃）}{accent2}\hfill
   \kpi{0h}{現行の閾値監視の\\リードタイム}{bad}
   \vspace{0.2cm}
@@ -293,10 +293,10 @@
 
 % ------------------------------------------------------------------ 12 uncertainty
 \settag{業務価値 ② 不確実性の提示}
-\begin{frame}{分位点回帰の「90\%区間」は実際には75〜84\%しか当たらなかったが、コンフォーマル補正で毎月ほぼ90\%に校正できた}
+\begin{frame}{分位点回帰の「90\%区間」は実際には75〜84\%しか当たらなかったが、コンフォーマル補正で全体90\%に校正できた（月別81〜97\%）}
   \begin{columns}[T]
     \begin{column}{0.58\textwidth}
-      \includegraphics[width=\textwidth]{res_coverage}
+      \includegraphics[width=\textwidth,height=4.4cm,keepaspectratio]{res_coverage}
     \end{column}
     \begin{column}{0.40\textwidth}
       \footnotesize
@@ -311,14 +311,14 @@
         区間幅 ETTh2 & 9.0℃ & 13.0℃ \\
         \bottomrule
       \end{tabular}
-      \vspace{0.2cm}
+      \vspace{0.1cm}
       \begin{itemize}\setlength{\itemsep}{2pt}
         \item 補正前はETTh2で月によって58\%まで低下。名目どおりの信頼度を\hl{実測で確認}してから保全判断に使うべき
         \item 区間が広い（ETTh2で約±6.5℃）のは外気温不在による不確実性と考えられる
       \end{itemize}
     \end{column}
   \end{columns}
-  \source{CQR：Romano et al. (2019)。各分割で再学習時点までの直近60日を校正に使用。計画あり（C）。時系列では被覆は理論保証でなく実測値。予測の例は付録C。}
+  \source{CQR：Romano et al. (2019)。各分割で再学習時点までの直近60日を校正に使用。計画あり（C）。被覆は理論保証でなく実測値。予測の例は付録B。}
 \end{frame}
 
 % ------------------------------------------------------------------ 13 robustness

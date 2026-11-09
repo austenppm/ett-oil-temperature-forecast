@@ -20,7 +20,7 @@ endef
 
 help:
 	@printf '\n$(BOLD)Transformer oil-temperature forecasting PoC$(RESET)\n\n'
-	@printf '  make test      run the 25 unit tests                       ~2 min the first time, then ~10 s\n'
+	@printf '  make test      run the 27 unit tests                       ~2 min the first time, then ~10 s\n'
 	@printf '  make all       regenerate every table and figure           ~45 min, shows progress\n'
 	@printf '  make slides    rebuild both report PDFs (needs xelatex)    ~1 min\n'
 	@printf '  make lint      ruff lint and format check\n\n'
