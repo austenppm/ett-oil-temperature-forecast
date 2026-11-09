@@ -1,0 +1,15 @@
+station,framing,group,mae_increase
+ETTh1,B,Calendar,-0.0326
+ETTh1,B,OT history,0.3085
+ETTh1,B,Past loads,0.0199
+ETTh1,C,Calendar,0.0113
+ETTh1,C,OT history,0.3338
+ETTh1,C,Past loads,0.022
+ETTh1,C,"Planned loads (t,T]",0.2751
+ETTh2,B,Calendar,0.1683
+ETTh2,B,OT history,0.6318
+ETTh2,B,Past loads,0.0107
+ETTh2,C,Calendar,0.1063
+ETTh2,C,OT history,0.5822
+ETTh2,C,Past loads,-0.0063
+ETTh2,C,"Planned loads (t,T]",0.223

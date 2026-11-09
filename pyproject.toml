@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ettpoc"
+version = "1.0.0"
+description = "24 h-ahead transformer oil-temperature forecasting PoC on the ETT dataset"
+readme = "README.md"
+requires-python = ">=3.11"
+# Exact, tested versions are pinned in requirements.txt.
+dependencies = ["numpy", "pandas", "scikit-learn", "scipy", "matplotlib", "torch"]
+
+[project.optional-dependencies]
+dev = ["pytest", "ruff"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["error::DeprecationWarning:ettpoc.*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "B", "I", "N", "UP", "SIM", "RUF"]
+ignore = [
+    "N803", "N806",  # X / y / X_train: the standard ML naming convention
+    "N812",          # `from . import config as C`: constants module used as a namespace
+    "RUF001",        # degree signs and dashes in figure labels are intentional
+]

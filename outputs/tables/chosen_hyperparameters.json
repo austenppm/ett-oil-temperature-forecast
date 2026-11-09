@@ -1,0 +1,60 @@
+{
+  "ETTh1": {
+    "B": {
+      "Ridge": {
+        "alpha": 1000
+      },
+      "GBM": {
+        "learning_rate": 0.03,
+        "max_leaf_nodes": 31,
+        "min_samples_leaf": 100,
+        "max_iter": 500
+      },
+      "WindowLinear": {
+        "alpha": 10000
+      }
+    },
+    "C": {
+      "Ridge": {
+        "alpha": 1000
+      },
+      "GBM": {
+        "learning_rate": 0.05,
+        "max_leaf_nodes": 15,
+        "min_samples_leaf": 50
+      },
+      "WindowLinear": {
+        "alpha": 10000
+      }
+    }
+  },
+  "ETTh2": {
+    "B": {
+      "Ridge": {
+        "alpha": 1000
+      },
+      "GBM": {
+        "learning_rate": 0.03,
+        "max_leaf_nodes": 31,
+        "min_samples_leaf": 100,
+        "max_iter": 500
+      },
+      "WindowLinear": {
+        "alpha": 10000
+      }
+    },
+    "C": {
+      "Ridge": {
+        "alpha": 1000
+      },
+      "GBM": {
+        "learning_rate": 0.05,
+        "max_leaf_nodes": 15,
+        "min_samples_leaf": 50
+      },
+      "WindowLinear": {
+        "alpha": 10000
+      }
+    }
+  }
+}

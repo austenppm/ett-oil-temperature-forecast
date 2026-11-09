@@ -1,0 +1,55 @@
+% Message & body slide style. Compile with xelatex.
+\usepackage{xeCJK}
+\setCJKmainfont[BoldFont={Hiragino Sans W6}]{Hiragino Sans W3}
+\setCJKsansfont[BoldFont={Hiragino Sans W6}]{Hiragino Sans W3}
+\setmainfont{Helvetica Neue}
+\setsansfont{Helvetica Neue}
+% circled digits and arrows must come from the Japanese font
+\xeCJKDeclareCharClass{FullLeft}{"2460->"2473}
+\xeCJKDeclareCharClass{CJK}{"2192, "2190, "2460->"2473}
+\usepackage{graphicx,booktabs,tabularx,array,colortbl,xcolor,tikz,multirow}
+\usetikzlibrary{arrows.meta,positioning,shapes.misc}
+
+\definecolor{ink}{HTML}{1A202C}
+\definecolor{muted}{HTML}{6B6B6B}
+\definecolor{accent}{HTML}{2B6CB0}
+\definecolor{accent2}{HTML}{C05621}
+\definecolor{good}{HTML}{2F855A}
+\definecolor{bad}{HTML}{C53030}
+\definecolor{soft}{HTML}{F2F5F9}
+\definecolor{rule}{HTML}{D5DCE4}
+
+\setbeamertemplate{navigation symbols}{}
+\setbeamercolor{normal text}{fg=ink}
+\setbeamerfont{normal text}{size=\small}
+\setbeamercolor{structure}{fg=accent}
+\setbeamertemplate{itemize item}{\color{accent}\raisebox{0.15ex}{\scriptsize$\blacksquare$}}
+\setbeamertemplate{itemize subitem}{\color{muted}--}
+\setlength{\leftmargini}{1.1em}
+
+% --- frame title = section tag (small) + message (1-2 sentences) ---
+\newcommand{\slidetag}{}
+\newcommand{\settag}[1]{\renewcommand{\slidetag}{#1}}
+\setbeamertemplate{frametitle}{%
+  \vspace{0.35cm}%
+  \begin{minipage}{\textwidth}
+    {\color{accent}\scriptsize\bfseries\slidetag}\par\vspace{0.12cm}
+    {\color{ink}\large\bfseries\insertframetitle\par}
+    \vspace{0.18cm}{\color{rule}\rule{\textwidth}{0.8pt}}
+  \end{minipage}}
+\setbeamertemplate{footline}{%
+  \leavevmode\hbox to\paperwidth{\hspace{0.45cm}{\color{muted}\tiny ETT Oil-Temperature Forecasting PoC}\hfill
+  {\color{muted}\tiny\insertframenumber}\hspace{0.45cm}}\vspace{0.22cm}}
+
+\newcommand{\source}[1]{\vfill{\color{muted}\tiny #1}}
+\newcommand{\hl}[1]{{\color{accent}\bfseries #1}}
+\newcommand{\hlb}[1]{{\color{bad}\bfseries #1}}
+\newcommand{\hlg}[1]{{\color{good}\bfseries #1}}
+\newcommand{\fig}[2][]{\includegraphics[#1]{../outputs/figures/#2.png}}
+\newcommand{\softbox}[2]{\begin{beamercolorbox}[sep=6pt,rounded=false]{soft}#2\end{beamercolorbox}}
+\setbeamercolor{soft}{bg=soft,fg=ink}
+\newcommand{\kpi}[3]{% value, label, color
+  \begin{minipage}[t]{0.23\textwidth}\centering
+    {\color{#3}\fontsize{20}{22}\selectfont\bfseries #1}\par\vspace{0.1cm}
+    {\scriptsize\color{muted}#2}
+  \end{minipage}}

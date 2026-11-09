@@ -1,0 +1,25 @@
+framing,model,rule,margin,episodes,recall_early,median_lead_h,alerts,precision,false_alerts_per_month
+B,Ensemble,point + margin,0.0,15,0.067,22.0,208,0.885,2.025
+B,Ensemble,point + margin,1.0,15,0.067,23.0,282,0.855,3.459
+B,Ensemble,point + margin,2.0,15,0.2,23.0,360,0.8,6.075
+B,Ensemble,point + margin,3.0,15,0.4,22.5,470,0.77,9.112
+B,Ensemble,point + margin,4.0,15,0.867,23.0,596,0.721,14.005
+B,Ensemble,point + margin,5.0,15,0.867,24.0,755,0.682,20.249
+B,Ensemble,point + margin,6.0,15,1.0,24.0,952,0.636,29.276
+B,Ensemble,point + margin,7.0,15,1.0,24.0,1187,0.593,40.751
+B,Ensemble,point + margin,8.0,15,1.0,24.0,1428,0.538,55.684
+B,Ensemble,point + margin,9.0,15,1.0,24.0,1672,0.493,71.461
+B,Ensemble,point + margin,10.0,15,1.0,24.0,1932,0.447,90.192
+B,GBM,CQR upper bound,,15,1.0,24.0,1007,0.595,34.423
+C,Ensemble,point + margin,0.0,15,0.067,21.0,221,0.937,1.181
+C,Ensemble,point + margin,1.0,15,0.2,22.0,297,0.902,2.447
+C,Ensemble,point + margin,2.0,15,0.467,22.0,388,0.858,4.64
+C,Ensemble,point + margin,3.0,15,0.6,22.0,483,0.834,6.75
+C,Ensemble,point + margin,4.0,15,0.867,21.0,601,0.789,10.715
+C,Ensemble,point + margin,5.0,15,0.933,23.5,755,0.736,16.79
+C,Ensemble,point + margin,6.0,15,1.0,24.0,948,0.682,25.395
+C,Ensemble,point + margin,7.0,15,1.0,24.0,1176,0.618,37.882
+C,Ensemble,point + margin,8.0,15,1.0,24.0,1393,0.566,50.959
+C,Ensemble,point + margin,9.0,15,1.0,24.0,1626,0.51,67.243
+C,Ensemble,point + margin,10.0,15,1.0,24.0,1870,0.467,84.117
+C,GBM,CQR upper bound,,15,1.0,24.0,971,0.619,31.217

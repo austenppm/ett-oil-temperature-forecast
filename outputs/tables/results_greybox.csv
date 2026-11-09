@@ -1,0 +1,5 @@
+station,framing,tau_median_h,tau_min_h,tau_max_h,coef_s2
+ETTh1,B,48.0,48,48,0.172
+ETTh1,C,42.0,36,48,2.539
+ETTh2,B,48.0,48,48,2.11
+ETTh2,C,48.0,36,48,4.862

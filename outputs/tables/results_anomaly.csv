@@ -1,0 +1,13 @@
+station,test,threshold_degC,alarm_episodes_per_month,unexplained_episodes,frozen_31st_days,frozen_days_flagged,n_faults,detection_rate,median_delay_h
+ETTh1,real data,1.727,1.097,13.0,7.0,0.0,,,
+ETTh1,synthetic +3 degC cooling fault,1.727,,,,,30.0,0.067,31.0
+ETTh1,synthetic +5 degC cooling fault,1.727,,,,,30.0,0.0,
+ETTh1,synthetic +8 degC cooling fault,1.727,,,,,30.0,0.0,
+ETTh1,synthetic +12 degC cooling fault,1.727,,,,,30.0,0.267,9.0
+ETTh1,synthetic +20 degC cooling fault,1.727,,,,,30.0,1.0,6.0
+ETTh2,real data,1.504,1.35,15.0,7.0,1.0,,,
+ETTh2,synthetic +3 degC cooling fault,1.504,,,,,30.0,0.067,28.0
+ETTh2,synthetic +5 degC cooling fault,1.504,,,,,30.0,0.1,23.0
+ETTh2,synthetic +8 degC cooling fault,1.504,,,,,30.0,0.0,
+ETTh2,synthetic +12 degC cooling fault,1.504,,,,,30.0,0.0,
+ETTh2,synthetic +20 degC cooling fault,1.504,,,,,30.0,0.1,9.0

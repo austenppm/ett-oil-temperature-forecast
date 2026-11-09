@@ -1,0 +1,41 @@
+model,params,val_MAE,station,framing
+Ridge,"{""alpha"": 0.1}",3.982660027171209,ETTh1,B
+Ridge,"{""alpha"": 1}",3.963419410960731,ETTh1,B
+Ridge,"{""alpha"": 10}",3.7902774642748165,ETTh1,B
+Ridge,"{""alpha"": 100}",2.9790503899321643,ETTh1,B
+Ridge,"{""alpha"": 1000}",2.322571322743471,ETTh1,B
+GBM,"{""learning_rate"": 0.05, ""max_leaf_nodes"": 15, ""min_samples_leaf"": 50}",2.5188227203860385,ETTh1,B
+GBM,"{""learning_rate"": 0.05, ""max_leaf_nodes"": 31, ""min_samples_leaf"": 50}",2.543061713844709,ETTh1,B
+GBM,"{""learning_rate"": 0.1, ""max_leaf_nodes"": 15, ""min_samples_leaf"": 100}",2.558991929295063,ETTh1,B
+GBM,"{""learning_rate"": 0.03, ""max_leaf_nodes"": 31, ""min_samples_leaf"": 100, ""max_iter"": 500}",2.4645908924183932,ETTh1,B
+Persistence,{},2.4925398116812842,ETTh1,B
+Ridge,"{""alpha"": 0.1}",3.857197135229409,ETTh1,C
+Ridge,"{""alpha"": 1}",3.8185083090790046,ETTh1,C
+Ridge,"{""alpha"": 10}",3.6392081889803074,ETTh1,C
+Ridge,"{""alpha"": 100}",2.8304364226659415,ETTh1,C
+Ridge,"{""alpha"": 1000}",2.2498365486156113,ETTh1,C
+GBM,"{""learning_rate"": 0.05, ""max_leaf_nodes"": 15, ""min_samples_leaf"": 50}",2.546996536554954,ETTh1,C
+GBM,"{""learning_rate"": 0.05, ""max_leaf_nodes"": 31, ""min_samples_leaf"": 50}",2.665379200028089,ETTh1,C
+GBM,"{""learning_rate"": 0.1, ""max_leaf_nodes"": 15, ""min_samples_leaf"": 100}",2.636569962409412,ETTh1,C
+GBM,"{""learning_rate"": 0.03, ""max_leaf_nodes"": 31, ""min_samples_leaf"": 100, ""max_iter"": 500}",2.5947378732577615,ETTh1,C
+Persistence,{},2.4932107226987874,ETTh1,C
+Ridge,"{""alpha"": 0.1}",3.4366773930439454,ETTh2,B
+Ridge,"{""alpha"": 1}",3.434341850917075,ETTh2,B
+Ridge,"{""alpha"": 10}",3.4147168448088863,ETTh2,B
+Ridge,"{""alpha"": 100}",3.362325439687584,ETTh2,B
+Ridge,"{""alpha"": 1000}",3.284153841814819,ETTh2,B
+GBM,"{""learning_rate"": 0.05, ""max_leaf_nodes"": 15, ""min_samples_leaf"": 50}",3.5676739744854533,ETTh2,B
+GBM,"{""learning_rate"": 0.05, ""max_leaf_nodes"": 31, ""min_samples_leaf"": 50}",3.4739660365309364,ETTh2,B
+GBM,"{""learning_rate"": 0.1, ""max_leaf_nodes"": 15, ""min_samples_leaf"": 100}",3.771817319444858,ETTh2,B
+GBM,"{""learning_rate"": 0.03, ""max_leaf_nodes"": 31, ""min_samples_leaf"": 100, ""max_iter"": 500}",3.3706990323781074,ETTh2,B
+Persistence,{},3.3404065936932037,ETTh2,B
+Ridge,"{""alpha"": 0.1}",3.6796152950020673,ETTh2,C
+Ridge,"{""alpha"": 1}",3.600772808287659,ETTh2,C
+Ridge,"{""alpha"": 10}",3.5529283001274994,ETTh2,C
+Ridge,"{""alpha"": 100}",3.4326764676206016,ETTh2,C
+Ridge,"{""alpha"": 1000}",3.231454586029426,ETTh2,C
+GBM,"{""learning_rate"": 0.05, ""max_leaf_nodes"": 15, ""min_samples_leaf"": 50}",3.1361892693880424,ETTh2,C
+GBM,"{""learning_rate"": 0.05, ""max_leaf_nodes"": 31, ""min_samples_leaf"": 50}",3.208958083869944,ETTh2,C
+GBM,"{""learning_rate"": 0.1, ""max_leaf_nodes"": 15, ""min_samples_leaf"": 100}",3.4537307021206565,ETTh2,C
+GBM,"{""learning_rate"": 0.03, ""max_leaf_nodes"": 31, ""min_samples_leaf"": 100, ""max_iter"": 500}",3.5087054561730926,ETTh2,C
+Persistence,{},3.3050982190035425,ETTh2,C

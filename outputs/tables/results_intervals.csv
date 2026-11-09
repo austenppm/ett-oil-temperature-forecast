@@ -1,0 +1,5 @@
+station,framing,coverage_raw_qr,coverage_cqr,width_raw_qr,width_cqr,target_coverage
+ETTh1,B,0.793,0.911,5.63,8.028,0.9
+ETTh1,C,0.84,0.9,5.974,7.22,0.9
+ETTh2,B,0.766,0.901,9.293,13.122,0.9
+ETTh2,C,0.766,0.9,9.349,12.707,0.9
