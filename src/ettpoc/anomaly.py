@@ -217,7 +217,15 @@ def fig_example(name: str, example: tuple) -> None:
     else:
         message = "no alarm while the fault is active"
     axes[1].axvspan(onset, onset + pd.Timedelta(hours=RAMP_H + HOLD_H), color="#f6d5d5", lw=0)
-    axes[1].text(onset, thr, f"  {message}", fontsize=8, color="#c53030", va="bottom")
+    axes[1].annotate(
+        f"  {message}",
+        (onset, thr),
+        textcoords="offset points",
+        xytext=(0, 3),
+        fontsize=8,
+        color="#c53030",
+        va="bottom",
+    )
     axes[1].set_ylabel("6 h mean gap\n(measured − expected)")
     save(fig, f"res_anomaly_example_{name}")
 

@@ -91,7 +91,7 @@ make lint           # ruff による lint とフォーマット確認
 make slides         # 日英両方の報告 PDF（xelatex と Hiragino Sans、つまり macOS が必要）
 ```
 
-データは初回実行時に上流の ETDataset リポジトリからダウンロードし、SHA-256 で検証します（課題で配布されたファイルとバイト単位で同一）。出力は `outputs/figures/` と `outputs/tables/` に保存されます。
+データは初回実行時に上流の ETDataset リポジトリからダウンロードし、SHA-256 で検証します（課題で配布されたファイルとバイト単位で同一）。出力は `outputs/figures/` と `outputs/tables/` に保存されます。日本語版レポート用に、すべての図の日本語版を `outputs/figures/ja/` に保存します。
 
 ```
 src/ettpoc/

@@ -102,7 +102,8 @@ make slides         # both report PDFs (xelatex + Hiragino Sans, i.e. macOS)
 
 Data are downloaded on first run from the upstream ETDataset repository and verified by SHA-256
 (they are byte-identical to the files supplied with the assignment). Outputs land in
-`outputs/figures/` and `outputs/tables/`.
+`outputs/figures/` and `outputs/tables/`; Japanese copies of every figure (used by the Japanese report)
+are in `outputs/figures/ja/`.
 
 ```
 src/ettpoc/
