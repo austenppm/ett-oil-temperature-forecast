@@ -200,26 +200,25 @@ def fig_example(name: str, example: tuple) -> None:
         label="Fault active",
     )
     axes[0].set_ylabel("OT")
-    axes[0].legend(fontsize=8, loc="upper left")
+    axes[0].legend(fontsize=8, loc="upper right")
     axes[0].set_title(
-        f"{name}: residual-based fault detection on a synthetic cooling fault", loc="left"
+        f"{name}: the expected OT follows an injected +{EXAMPLE_FAULT_SIZE:.0f} °C cooling fault",
+        loc="left",
     )
     s = stat_f[lo:hi]
     axes[1].plot(s, color=MUTED, lw=1.2)
     axes[1].axhline(thr, color="#c53030", ls=":", lw=1)
     axes[1].axhline(-thr, color="#c53030", ls=":", lw=1)
-    first = s[(s.abs() > thr) & (s.index >= onset)]
+    during = (s.index >= onset) & (s.index < onset + pd.Timedelta(hours=RAMP_H + HOLD_H))
+    first = s[during & (s.abs() > thr)]
     if len(first):
         axes[1].axvline(first.index[0], color="#c53030", lw=1)
-        axes[1].text(
-            first.index[0],
-            thr,
-            f"  alarm after {(first.index[0] - onset) / pd.Timedelta(hours=1):.0f} h",
-            fontsize=8,
-            color="#c53030",
-            va="bottom",
-        )
-    axes[1].set_ylabel("6 h mean residual")
+        message = f"alarm {(first.index[0] - onset) / pd.Timedelta(hours=1):.0f} h after onset"
+    else:
+        message = "no alarm while the fault is active"
+    axes[1].axvspan(onset, onset + pd.Timedelta(hours=RAMP_H + HOLD_H), color="#f6d5d5", lw=0)
+    axes[1].text(onset, thr, f"  {message}", fontsize=8, color="#c53030", va="bottom")
+    axes[1].set_ylabel("6 h mean gap\n(measured − expected)")
     save(fig, f"res_anomaly_example_{name}")
 
 

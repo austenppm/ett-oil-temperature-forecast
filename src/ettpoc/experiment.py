@@ -35,8 +35,9 @@ from .features import ABSOLUTE_LEVEL_COLS, apparent_power_sq, build, feature_gro
 from .models import CQR, GreyBoxThermal, make_gbm, make_mlp, make_ridge
 from .progress import done, step, wrote
 
-RIDGE_ALPHAS = [0.1, 1, 10, 100, 1000]
-WINDOW_ALPHAS = [10, 100, 1000, 10000]
+# Wide enough that every selected value lies inside the grid (checked on development data).
+RIDGE_ALPHAS = [1, 10, 100, 300, 1000, 3000, 10000, 30000, 100000]
+WINDOW_ALPHAS = [100, 1000, 3000, 10000, 30000, 100000, 300000]
 RECENCY_HALFLIFE_DAYS = 180  # drift-robust models weight recent training data more
 PEAK_WEIGHT = 3.0  # peak-aware model: weight of targets above the training 90th percentile
 GBM_GRID = [

@@ -24,12 +24,12 @@ There is no separate setup step: whichever command you run first creates the env
 | | ETTh1 | ETTh2 |
 |---|---|---|
 | Persistence MAE, 24 h ahead | 1.76 °C | 3.25 °C |
-| **Ridge** (physics features + load plan) | **1.60 °C (−9.1 %, Holm-adjusted DM p < 0.001)** | **3.09 °C (−4.8 %, p = 0.004; Holm-adjusted 0.10)** |
+| **Ridge** (physics features + load plan) | **1.60 °C (−9.1 %, Holm-adjusted DM p < 0.001)** | **3.10 °C (−4.4 %, p = 0.003; Holm-adjusted 0.06)** |
 | Equal-weight ensemble (C) | 1.65 °C (−6.4 %) | **3.06 °C (−5.8 %, best on ETTh2)** |
 | Best skill at shorter lead times (vs. best naive benchmark) | 22 % at 12 h | 53 % at 1–3 h |
 | 90 % interval coverage: quantile regression → conformalized (CQR) | 84 % → 90 % | 75 % → 91 % |
 
-- **Early warning (ETTh2, 15 hot-spell onsets):** an **Ensemble (C)** alarm that fires when the forecast is within 4 °C of the proxy alarm level warns **80 % of onsets a median 23 h ahead** with ~10 false alert-hours per month (5 °C: 93 %, ~16 h). Today's threshold alarm gives 0 h warning. The margin was read off the evaluation-year curve, so this is an exploratory operating point, not a validated policy.
+- **Early warning (ETTh2, 15 overheating events):** an **Ensemble (C)** alarm that fires when the forecast is within 5 °C of the proxy alarm level warns **12 of 15 events (80 %) at least 12 h ahead** (most about a day ahead), with about **3 false alarms per month** (consecutive alert hours count as one alarm). Today's threshold alarm gives no advance warning. Warnings come either about a day or only 1–2 h before an event, so the share warned ≥12 h ahead is reported rather than a median lead time. The margin was read off the evaluation-year curve, so this is an exploratory operating point, not a validated policy.
 - **Complex models did not win.** GBM, LSTM, MLP, a physics + ML hybrid and bias correction did not beat Ridge on ETTh1; on ETTh2 the ensemble leads Ridge by one point. Only Ridge on ETTh1 stays significant after a Holm correction across all 25 comparisons with persistence per station (24 model variants plus the 24 h moving average). Our hypothesis is that input information limits accuracy more than model capacity: **ambient temperature is not in the data** and appears to drive the daily cycle.
 - **Data quality matters.** Every 31st day of a month is frozen on all channels, ETTh2 has a load sensor stuck for 43 days, and there are ±20 °C single-hour spikes. These are flagged, excluded from scoring, and a stuck load sensor switches the forecast to persistence at run time (a continuity fallback, not necessarily conservative).
 - **Fault detection** from the expected-versus-measured OT residual is **not viable without ambient temperature**: synthetic 3–8 °C cooling faults are detected 0 % of the time (0 of 180).
@@ -88,7 +88,7 @@ result regenerated:
   −45 % result was an artefact of a random hold-out); CQR uses the exact order statistic;
   significance is reported with a Holm correction; the LSTM file is checked to belong to the same run.
 
-The headline Ridge result was essentially unchanged (−9.1 % / −4.8 %).
+A follow-up check found the Ridge and WindowLinear tuning grids too narrow (the chosen values sat at the edge); both were widened so every 24 h choice is interior, and the models rerun. ETTh1's headline is unchanged (−9.1 %); ETTh2 Ridge moved from −4.8 % to −4.4 %. Alerts are now scored as warnings ≥12 h ahead and false alarms per month.
 
 ## Reproduce
 

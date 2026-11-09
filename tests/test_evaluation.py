@@ -104,3 +104,33 @@ def test_onset_after_unobserved_hours_is_not_scored():
     ot[index[50]] = np.nan  # may have been hot: unknown whether index[60] starts a hot spell
     result = evaluate_alerts(index[: -C.H], np.zeros(len(index) - C.H), ot, threshold=5.0)
     assert result["episodes"] == 0 and result["episodes_unscorable"] == 1
+
+
+def test_consecutive_alert_hours_count_as_one_alarm():
+    index = pd.date_range("2017-07-01", periods=24 * 5, freq="h")
+    ot = pd.Series(0.0, index=index)
+    issue_times = index[: -C.H]
+    predicted = np.zeros(len(issue_times))
+    predicted[10:15] = 10.0  # one false alarm lasting 5 hours
+    predicted[40] = 10.0  # a second, one-hour false alarm
+    result = evaluate_alerts(issue_times, predicted, ot, threshold=5.0)
+    assert result["alerts"] == 6 and result["alarms"] == 2
+    months = (issue_times.max() - issue_times.min()) / pd.Timedelta(days=30.44)
+    assert result["false_alarms_per_month"] == pytest.approx(2 / months)
+
+
+def test_last_minute_warnings_do_not_count_as_useful():
+    index = pd.date_range("2017-07-01", periods=24 * 6, freq="h")
+    ot = pd.Series(0.0, index=index)
+    ot[index[50] : index[52]] = 10.0  # onset A
+    ot[index[100] : index[102]] = 10.0  # onset B
+    issue_times = index[: -C.H]
+    predicted = np.zeros(len(issue_times))
+    predicted[issue_times.get_loc(index[50] - pd.Timedelta(hours=C.H))] = 10.0  # 24 h ahead
+    predicted[issue_times.get_loc(index[100] - pd.Timedelta(hours=C.H))] = 0.0
+    predicted[issue_times.get_loc(index[99] - pd.Timedelta(hours=C.H))] = 0.0
+    alerts_b = issue_times[(issue_times >= index[98]) & (issue_times <= index[99])]
+    predicted[issue_times.get_indexer(alerts_b)] = 10.0  # only 1-2 h before onset B
+    result = evaluate_alerts(issue_times, predicted, ot, threshold=5.0)
+    assert result["recall_early"] == 1.0
+    assert result["recall_useful"] == 0.5

@@ -14,6 +14,7 @@ def test_example_forecast_figure_uses_current_alert_inputs(monkeypatch, tmp_path
             "framing": framing,
             "model": model,
             "target_time": target,
+            "fold": "2017-07",
             "ot_true": 20.0 + i,
             "ot_pred": 19.5 + i,
             "lo": 18.0 + i,

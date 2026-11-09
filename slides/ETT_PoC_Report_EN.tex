@@ -19,17 +19,17 @@
 
 % ------------------------------------------------------------------ 1 summary
 \settag{Executive summary}
-\begin{frame}{Forecasts flag 80\% of overheating onsets about 23 h ahead but improve accuracy by only 5--9\%; deployment needs ambient data}
+\begin{frame}{Forecast alerts warn of 80\% of overheating $\geq$12 h ahead, but improve accuracy by only 4--9\%; deployment needs ambient data}
   \kpi{−9.1\%}{24 h error vs.\\persistence (ETTh1)}{accent}\hfill
-  \kpi{80\%}{Onsets warned early\\(ETTh2, 10 false h/month)}{good}\hfill
-  \kpi{$\sim$23 h}{Median warning\\lead time}{accent2}\hfill
+  \kpi{80\%}{Warned $\geq$12 h ahead\\(ETTh2, 12 of 15)}{good}\hfill
+  \kpi{$\sim$3/month}{False alarms\\(5 °C margin)}{accent2}\hfill
   \kpi{0 h}{Lead time of today's\\threshold alarm}{bad}
   \vspace{0.2cm}
   \begin{columns}[T]
     \begin{column}{0.49\textwidth}
       \softbox{}{\scriptsize\textbf{Findings}
       \begin{itemize}\setlength{\itemsep}{1pt}
-        \item Strong inertia limits the 24 h gain to 5--9\%, but \hl{3--6 h ahead error falls 13--53\%}
+        \item Strong inertia limits the 24 h gain to 4--9\%, but \hl{3--6 h ahead error falls 13--53\%}
         \item Best on ETTh1: physics features + linear model (ETTh2: ensemble, narrowly). GBM, LSTM etc. did not beat it
         \item The value is \emph{warning lead time}, not accuracy; the next-day load plan is key
         \item Raw intervals under-cover (75--84\%); conformal calibration gives 90\%
@@ -44,7 +44,7 @@
       \end{itemize}}
     \end{column}
   \end{columns}
-  \source{Evaluation: Jul 2017 -- Jun 2018, 12 monthly rolling folds. Warning rates rest on 15 onsets; the 4 °C margin was read off the evaluation year (exploratory).}
+  \source{Evaluation: Jul 2017 -- Jun 2018, 12 monthly rolling folds. Warning rates rest on 15 events; the 5 °C margin was read off the evaluation year (exploratory).}
 \end{frame}
 
 % ------------------------------------------------------------------ 2 scope
@@ -214,93 +214,91 @@
 
 % ------------------------------------------------------------------ 8 accuracy
 \settag{Results ① Accuracy}
-\begin{frame}{The linear model with the plan cuts 24 h error by 9.1\% (ETTh1) and 4.8\% (ETTh2); the ensemble narrowly leads on ETTh2}
-  \centering\includegraphics[width=\textwidth,height=3.9cm,keepaspectratio]{res_skill}\par\raggedright
+\begin{frame}{With the load plan, the linear model cuts 24 h error by 9.1\% on ETTh1; on ETTh2 by 4.4\%, where the ensemble (5.8\%) is narrowly ahead}
+  \centering\includegraphics[width=0.82\textwidth,height=4.3cm,keepaspectratio]{res_headline}\par\raggedright
   \scriptsize
   \begin{itemize}\setlength{\itemsep}{1pt}
-    \item MAE: ETTh1 1.76 → \hl{1.60 °C} (Holm-adjusted p<0.001), ETTh2 3.25 → \hl{3.09 °C} (p=0.004 unadjusted; 0.10 after Holm, so not significant)
-    \item \hl{The plan (C)} helps every model except the physics model alone (ETTh1 Ridge 3.9\% → 9.1\%), which gets worse on both stations: the benefit is model-dependent
+    \item MAE: ETTh1 1.76 → \hl{1.60 °C} (significant after multiple-comparison correction, p<0.001). ETTh2 3.25 → 3.10 °C (p=0.003 unadjusted, 0.06 adjusted)
+    \item \hl{The plan (C)} improves almost every model (ETTh1 Ridge 4.3\% → 9.1\%); only the physics model alone gets worse on both stations
   \end{itemize}
+  \source{Bars: reduction in 24 h MAE vs. persistence. * = Diebold--Mariano p<0.05, Holm-corrected across each station's 25 comparisons.}
 \end{frame}
 
 % ------------------------------------------------------------------ 9 complexity
 \settag{Results ② Model complexity}
 \begin{frame}{More complex is not better: GBM, LSTM and MLP did not beat the linear model under year-to-year drift}
-  \scriptsize
-  \renewcommand{\arraystretch}{1.08}
-  \begin{tabularx}{\textwidth}{>{\bfseries}p{4.2cm} c c X}
-    \toprule
-    Method (C: with plan) & ETTh1 & ETTh2 & Interpretation \\
-    \midrule
-    Ridge (physics features) & \hlg{+9.1\%*} & +4.8\% & Best on ETTh1. Few parameters, extrapolates well \\
-    Ensemble (Ridge+GBM+Hybrid) & +6.4\% & \hlg{+5.8\%} & Best on ETTh2, 1 point ahead of Ridge \\
-    MLP (64-32) & +5.9\% & +3.9\% & Short of the linear model \\
-    Raw-window linear (DLinear-style) & +5.3\% & +2.9\% & Competitive without feature design (consistent with Zeng et al. 2023) \\
-    LSTM (raw sequence) & +3.5\% & −0.3\% & No clear advantage for sequence models \\
-    GBM / robust GBM / peak GBM & −2.6 to +1.3\% & +0.5 to +2.3\% & −4 to −8\% without the plan (B); weak under level shifts \\
-    Physics + GBM hybrid & −7.2\% & +2.0\% & Fails to learn the physics model's residual \\
-    Bias correction from past 7 days (+BC) & worse & worse & Errors are weather-driven swings, not persistent bias \\
-    \bottomrule
-  \end{tabularx}
-  \vspace{0.15cm}
-  \softbox{}{\scriptsize\textbf{Implication}: accuracy seems limited by \hl{input information (no ambient temperature)} more than model capacity. Prioritise data over complexity (a hypothesis to test with ambient data).}
-  \source{Figures are the reduction in 24 h MAE vs. persistence. * = Diebold--Mariano p<0.05 after Holm correction across each station's comparisons.}
+  \begin{columns}[T]
+    \begin{column}{0.60\textwidth}
+      \includegraphics[width=\textwidth]{res_skill}
+    \end{column}
+    \begin{column}{0.38\textwidth}
+      \scriptsize
+      \begin{itemize}\setlength{\itemsep}{3pt}
+        \item \textbf{Linear is best}: Ridge on physics features wins on ETTh1; on ETTh2 the equal-weight ensemble of Ridge, GBM and hybrid leads by 1 point
+        \item \textbf{Trees break under level shifts}: GBM without the plan (B) is −4 to −8\%
+        \item \textbf{Neural nets fall short}: MLP 5.9\% / 3.9\%, LSTM 3.5\% / −0.3\%
+        \item \textbf{Correcting with recent errors hurts}: errors are weather swings, not a persistent bias
+      \end{itemize}
+      \vspace{0.1cm}
+      \softbox{}{\scriptsize\textbf{Implication}: accuracy seems limited by \hl{input information (no ambient temperature)} more than model capacity (a hypothesis to test with ambient data).}
+    \end{column}
+  \end{columns}
+  \source{Open = without plan (B), filled = with plan (C). * = Holm-adjusted p<0.05. Values: reduction in 24 h MAE vs. persistence.}
 \end{frame}
 
 % ------------------------------------------------------------------ 10 horizons
 \settag{Results ③ Forecast lead time}
-\begin{frame}{Forecasts help most hours to half a day ahead (up to 22--53\% lower error) and only 5--9\% at 24 h, so match the horizon to the use}
+\begin{frame}{Forecasts help most hours to half a day ahead (up to 22--53\% lower error) and only 4--9\% at 24 h, so match the horizon to the use}
   \centering\includegraphics[width=\textwidth,height=3.7cm,keepaspectratio]{res_horizons}\par\raggedright
   \scriptsize
   \begin{itemize}\setlength{\itemsep}{1pt}
-    \item \textbf{1--6 h}: robust GBM best; ETTh2 error −53\% at 1 h and 3 h, −36\% at 6 h (learns the daily heating pattern)
-    \item \textbf{12--48 h}: linear with plan (C) best; ETTh1 −22\% at 12 h. ETTh2 at 12 h only −8\% (``same hour yesterday'' is strong)
+    \item \textbf{1--6 h}: robust GBM mostly best; ETTh2 error −53\% at 1 h and 3 h, −36\% at 6 h (learns the daily heating pattern)
+    \item \textbf{12--48 h}: linear models best; ETTh1 −22\% at 12 h. ETTh2 at 12 h only −8\% (``same hour yesterday'' is strong)
     \item \hl{Use}: $\leq$6 h for load and cooling decisions, 24 h for inspection and maintenance planning (alerts: p.12)
   \end{itemize}
-  \source{Benchmark: better of persistence and ``same hour yesterday''; same 12 rolling folds.}
+  \source{Benchmark: better of persistence and ``same hour yesterday''; same 12 rolling folds; tuned per horizon on development data. ETTh2 1 h Ridge (C): validation favoured the strongest regularisation, so its gain is small.}
 \end{frame}
 
 % ------------------------------------------------------------------ 11 alerts
 \settag{Business value ① Early overheating warning}
-\begin{frame}{With a 4 °C warning margin, 80\% of overheating onsets are flagged about 23 h ahead, with false alerts held to about 10 h per month}
+\begin{frame}{With a 5 °C warning margin, 80\% of overheating events are flagged 12 h or more ahead, with about 3 false alarms per month}
   \begin{columns}[T]
-    \begin{column}{0.50\textwidth}
+    \begin{column}{0.52\textwidth}
       \includegraphics[width=\textwidth]{res_alert_tradeoff}
     \end{column}
-    \begin{column}{0.48\textwidth}
+    \begin{column}{0.46\textwidth}
       \scriptsize
-      \renewcommand{\arraystretch}{1.2}
+      \renewcommand{\arraystretch}{1.15}
       \begin{tabular}{l c c}
         \toprule
-        Alert rule & Warned & False h/mo \\
+        Alert rule & Warned $\geq$12 h & False/month \\
         \midrule
         Today: threshold & 0\% & -- \\
-        Forecast (B) + 4 °C & 87\% & 12.9 \\
-        \textbf{Forecast (C) + 4 °C} & \hlg{80\%} & \hlg{10.2} \\
-        Forecast (C) + 5 °C & 93\% & 15.8 \\
-        90\% interval upper bound & 100\% & 31.6 \\
+        Forecast (C) + 4 °C & 40\% & 2.4 \\
+        \textbf{Forecast (C) + 5 °C} & \hlg{80\%} & \hlg{3.4} \\
+        Forecast (B) + 5 °C & 67\% & 3.6 \\
+        Forecast (C) + 6 °C & 93\% & 4.3 \\
         \bottomrule
       \end{tabular}
       \vspace{0.1cm}
       \begin{itemize}\setlength{\itemsep}{1pt}
-        \item The margin is \hl{the operator's dial}: false-alarm vs. miss cost
-        \item 4 °C was \hl{read off the evaluation curve}; fix it in the shadow run
-        \item For alerts the plan adds little
-        \item ETTh1 never reaches the proxy alarm; not scored
+        \item Warnings come either about a day ahead or only 1--2 h ahead, so we score \hl{warnings $\geq$12 h ahead}
+        \item The margin is \hl{the operator's dial}; 5 °C was read off the evaluation curve and should be fixed in the shadow run
+        \item With the plan, slightly more events are warned at similar false alarms (12 vs 10 of 15)
       \end{itemize}
     \end{column}
   \end{columns}
-  \source{ETTh2, ensemble. Onset: proxy alarm (46.4 °C) crossed after $\geq$24 h below; 15 onsets. 13 of 620 alerts unscorable (missing truth).}
+  \source{ETTh2, ensemble. Event: proxy alarm (46.4 °C) crossed after $\geq$24 h below; 15 events. Consecutive alert hours count as one alarm. ETTh1 never reaches the proxy alarm.}
 \end{frame}
 
 % ------------------------------------------------------------------ 12 uncertainty
 \settag{Business value ② Communicating uncertainty}
-\begin{frame}{The quantile-regression ``90\% interval'' actually covered only 75--84\%, but conformal calibration brought it to 90\%}
+\begin{frame}{The quantile-regression ``90\% interval'' actually covered only 75--84\%, but conformal calibration brought it to about 90\% in every month}
   \begin{columns}[T]
-    \begin{column}{0.62\textwidth}
-      \includegraphics[width=\textwidth]{res_example_forecast}
+    \begin{column}{0.58\textwidth}
+      \includegraphics[width=\textwidth]{res_coverage}
     \end{column}
-    \begin{column}{0.36\textwidth}
+    \begin{column}{0.40\textwidth}
       \scriptsize
       \renewcommand{\arraystretch}{1.25}
       \begin{tabular}{l c c}
@@ -315,17 +313,17 @@
       \end{tabular}
       \vspace{0.2cm}
       \begin{itemize}\setlength{\itemsep}{2pt}
-        \item \hl{Check stated confidence on real data} before maintenance use
+        \item Raw coverage drops to 58\% in some ETTh2 months: \hl{check stated confidence on real data} before maintenance use
         \item Width (ETTh2 about ±6.5 °C) likely reflects the missing ambient temperature
       \end{itemize}
     \end{column}
   \end{columns}
-  \source{CQR: Romano et al. (2019); last 60 days before each refit calibrate. Framing C. Coverage is measured, not guaranteed; fallback hours excluded.}
+  \source{CQR: Romano et al. (2019); last 60 days before each refit calibrate. Framing C. Coverage is measured, not guaranteed. Example forecasts: appendix B.}
 \end{frame}
 
 % ------------------------------------------------------------------ 13 robustness
 \settag{Business value ③ Load-plan quality requirement}
-\begin{frame}{The plan's benefit fades at 5--10\% plan error and at 20\% both stations fall below the no-plan forecast: plan accuracy is a precondition}
+\begin{frame}{The plan still helps at about 10\% plan error, but at 20\% its benefit is gone (ETTh1 falls below no plan), so plan accuracy is a precondition}
   \begin{columns}[T]
     \begin{column}{0.55\textwidth}
       \includegraphics[width=\textwidth]{res_load_noise}
@@ -334,9 +332,9 @@
       \footnotesize
       \begin{itemize}\setlength{\itemsep}{3pt}
         \item ``Imperfect plan'': daily bias + hourly noise (σ) added to future load only; mean of 5 draws
-        \item ETTh1: skill 9.1\% (no error) → 7.2\% (10\%) → \hlb{2.0\% (20\%)}, below no plan (3.9\%)
-        \item ETTh2: 4.8\% → 4.3\% (10\%, ≈ no plan 4.2\%) → \hlb{3.1\% (20\%)}
-        \item \hl{Requirement}: plan error within about 5--10\%; otherwise use B
+        \item ETTh1: skill 9.1\% (no error) → 7.2\% (10\%) → \hlb{2.0\% (20\%)}, below no plan (4.3\%)
+        \item ETTh2: 4.4\% → 4.0\% (10\%) → \hlb{3.1\% (20\%)}, about equal to no plan (3.3\%)
+        \item \hl{Requirement}: plan error within about 10\%; otherwise use B
       \end{itemize}
     \end{column}
   \end{columns}
@@ -345,13 +343,13 @@
 
 % ------------------------------------------------------------------ 14 failure analysis
 \settag{Error analysis}
-\begin{frame}{Errors concentrate at season changes and in hot periods; in ETTh2's hottest range the models do worse than persistence}
-  \centering\includegraphics[width=\textwidth,height=3.6cm,keepaspectratio]{res_monthly}\par\raggedright
-  \scriptsize
+\begin{frame}{Gains vary by month, and in ETTh2's hottest range the models do worse than persistence because they pull peaks towards the mean}
+  \centering\includegraphics[width=\textwidth,height=4.1cm,keepaspectratio]{res_error_analysis}\par\raggedright
+  \footnotesize
   \begin{itemize}\setlength{\itemsep}{1pt}
-    \item Hot-period MAE (above the development 90th pct., ETTh2): persistence \textbf{2.69 °C}, Ridge (C) 3.04, peak GBM 3.07. \hlb{Models pull peaks to the mean}
-    \item No model beats it; closest are LSTM (C) 2.76 °C and MLP (C) 2.79 °C. A hot-range model or ambient temperature could help
-    \item The alert margin offsets this under-prediction (p.12)
+    \item By month: most months improve, but November and May are about zero, and ETTh2 July 2017 is −8\%
+    \item Hottest range (above the development 90th pct., ETTh2): persistence \textbf{2.69 °C}, Ridge (C) 2.93, ensemble 3.26. No model beats it
+    \item Alerts offset this under-prediction with a margin (p.12). A hot-range model or ambient temperature could help
   \end{itemize}
 \end{frame}
 
@@ -359,24 +357,24 @@
 \settag{Extension ① Anomaly detection}
 \begin{frame}{Data-quality monitoring can start now, but detecting cooling faults from the expected-temperature gap needs ambient temperature}
   \begin{columns}[T]
-    \begin{column}{0.49\textwidth}
-      \softbox{}{\footnotesize\textbf{Rule-based data-quality monitoring: works}
-      \begin{itemize}\setlength{\itemsep}{1pt}
-        \item Detects stuck load sensors, OT spikes and all-channel freezes from past data (after 24 h / 12 h of constancy). Load balance is descriptive only
-        \item Found a real \hl{43-day stuck sensor} (p.4)
-        \item A stuck load sensor switches forecasts to persistence (continuity, not necessarily conservative)
-      \end{itemize}}
+    \begin{column}{0.56\textwidth}
+      \includegraphics[width=\textwidth]{res_anomaly_example_ETTh2}
     \end{column}
-    \begin{column}{0.49\textwidth}
-      \softbox{}{\footnotesize\textbf{Residual-based cooling-fault detection: not yet}
+    \begin{column}{0.42\textwidth}
+      \scriptsize
+      \softbox{}{\textbf{Cooling-fault detection (gap to expected OT): not yet}
       \begin{itemize}\setlength{\itemsep}{1pt}
-        \item Alarm on the 6 h mean gap to load-based expected OT (Djamali \& Tenbohlen; CIGRE digital twin)
-        \item +3--8 °C synthetic faults caught \hlb{0\%} (0 of 180): the model ``follows'' the fault, so the gap stays below the threshold (1.5--1.7 °C)
-        \item +20 °C in 12 h: all caught on ETTh1 (ETTh2: 10\%)
+        \item Expected OT from load; alarm on the 6 h mean gap (Djamali \& Tenbohlen; CIGRE digital twin)
+        \item +3--8 °C synthetic faults caught \hlb{0\%} (0 of 180): as shown, the expectation ``follows'' the fault, so the gap stays under the threshold (1.5--1.7 °C)
+      \end{itemize}}
+      \vspace{0.1cm}
+      \softbox{}{\textbf{Data-quality monitoring: works}
+      \begin{itemize}\setlength{\itemsep}{1pt}
+        \item Detects stuck load sensors, OT spikes and all-channel freezes from past data; found a real \hl{43-day stuck sensor} (p.4)
       \end{itemize}}
     \end{column}
   \end{columns}
-  \vspace{0.2cm}
+  \vspace{0.1cm}
   \footnotesize
   \textbf{Conclusion}: re-test fault detection with ambient temperature and cooling status as inputs; for now deploy data-quality monitoring only.
   \source{Synthetic fault: 12 h rise, held 36 h; 30 per size at the same onsets, only where the unmodified data are clean and alarm-free.}
@@ -411,7 +409,7 @@
       \textbf{Proposed pass}: ambient temperature improves MAE by $\geq$10\%};
     \node[stepbox, right=of a] (b) {\textbf{\color{accent}Step 2 (3 months)\\Shadow run}\\[3pt]
       ・Show forecasts beside operations (not for decisions)\\・Log false alerts and misses\\[3pt]
-      \textbf{Proposed pass}: $\geq$80\% warned $\geq$12 h ahead, $\leq$10 false alert-hours/month};
+      \textbf{Proposed pass}: $\geq$80\% warned $\geq$12 h ahead, $\leq$4 false alarms/month};
     \node[stepbox, right=of b] (c) {\textbf{\color{accent}Step 3\\Deploy and scale}\\[3pt]
       ・Add alerts to maintenance procedures\\・Re-test cooling-fault detection\\・Extend to more transformers\\[3pt]
       \textbf{Monitor}: monthly coverage, error, drift; retrain};
@@ -447,7 +445,17 @@
   \end{tabularx}
 \end{frame}
 
-\settag{Appendix B  References}
+\settag{Appendix B  Example forecasts}
+\begin{frame}{Appendix: 24 h-ahead forecasts and 90\% interval in a typical month (the month with median skill)}
+  \centering\includegraphics[width=\textwidth,height=4.4cm,keepaspectratio]{res_example_forecast}\par\raggedright
+  \footnotesize
+  \begin{itemize}\setlength{\itemsep}{1pt}
+    \item Month chosen by rule: the month with the median Ridge (C) skill on ETTh2. Measured, forecast, persistence and the 90\% interval, aligned at target time
+    \item Forecasts track the daily rise and fall but under-predict sharp warm-ups and peaks (the pattern on p.15)
+  \end{itemize}
+\end{frame}
+
+\settag{Appendix C  References}
 \begin{frame}{Appendix: references}
   \tiny
   \begin{enumerate}\setlength{\itemsep}{0pt}

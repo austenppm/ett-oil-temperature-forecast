@@ -106,6 +106,7 @@ def evaluate_alerts(
     tolerance: int = 6,
     merge_gap: int = C.H,
     scored_from: pd.Timestamp | None = None,
+    useful_lead: int = 12,
 ) -> dict:
     """Simulate a predictive alarm: at issue time t, alert if predicted OT(t+H) > threshold.
 
@@ -120,10 +121,14 @@ def evaluate_alerts(
 
     - Episode recall: share of scored episodes (onset s) preceded by >=1 alert issued
       in [s-H, s-1], i.e. a warning that arrives before the temperature crosses the limit.
-    - Lead time: s minus the first such alert time (hours).
+    - Lead time: s minus the first such alert time (hours). Leads are typically either about
+      a day or only an hour or two, so the share warned >= `useful_lead` hours ahead
+      (recall_useful) is the operational measure; the median lead mixes the two groups.
     - An alert is true if an observed OT within +/- tolerance hours of its target time
       exceeds the threshold, false if that whole window is observed and none does, and
       unscorable otherwise. Precision and false alert-hours use the scored alerts only.
+    - Alarms: consecutive alert hours form one alarm, as an operator would experience it.
+      An alarm is false if all its alert hours are false (none true, none unscorable).
     """
     issue_times = pd.DatetimeIndex(issue_times)
     alerts = issue_times[np.asarray(predicted_ot_T) > threshold]
@@ -152,22 +157,35 @@ def evaluate_alerts(
 
     true_alerts = false_alerts = 0
     hot_times = above[above].index
+    outcome = []  # per alert: "true", "false" or "unscorable"
     for t in alerts:
         target = t + C.H * hour
         lo, hi = target - tolerance * hour, target + tolerance * hour
         if ((hot_times >= lo) & (hot_times <= hi)).any():
             true_alerts += 1
+            outcome.append("true")
         elif fully_observed(lo, hi):
             false_alerts += 1
+            outcome.append("false")
+        else:
+            outcome.append("unscorable")
+    alarm_id = np.cumsum(np.r_[True, np.diff(alerts) != hour]) if len(alerts) else np.array([])
+    alarms = pd.Series(outcome, dtype=object).groupby(alarm_id)
+    false_alarms = int(alarms.apply(lambda o: (o == "false").all()).sum()) if len(alerts) else 0
     months = (issue_times.max() - issue_times.min()) / pd.Timedelta(days=30.44)
     scored = true_alerts + false_alerts
     return {
         "episodes": len(episodes),
         "episodes_unscorable": unscorable_episodes,
         "recall_early": len(leads) / len(episodes) if episodes else np.nan,
+        "recall_useful": sum(lead >= useful_lead for lead in leads) / len(episodes)
+        if episodes
+        else np.nan,
         "median_lead_h": float(np.median(leads)) if leads else np.nan,
         "alerts": len(alerts),
         "alerts_unscorable": len(alerts) - scored,
         "precision": true_alerts / scored if scored else np.nan,
         "false_alerts_per_month": false_alerts / months if len(issue_times) else np.nan,
+        "alarms": alarms.ngroups if len(alerts) else 0,
+        "false_alarms_per_month": false_alarms / months if len(issue_times) else np.nan,
     }

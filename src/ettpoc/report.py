@@ -314,19 +314,29 @@ def alert_tradeoff(p_all, st="ETTh2", model="Ensemble"):
     for fr, ls, a in (("B", "--", 0.45), ("C", "-", 1.0)):
         d = t[(t.framing == fr) & (t.rule == "point + margin")]
         ax.plot(
-            d.false_alerts_per_month,
-            d.recall_early * 100,
+            d.false_alarms_per_month,
+            d.recall_useful * 100,
             ls=ls,
             marker="o",
             ms=3,
             color=color,
             alpha=a,
-            label=f"{model} ({fr}) alarm, margin 0–10 °C",
+            label=f"{model} ({fr}) + margin 0–10 °C",
         )
+        if fr == "C":
+            for _, r in d[d.margin.isin([2, 4, 5, 6])].iterrows():
+                ax.annotate(
+                    f"{r.margin:.0f} °C",
+                    (r.false_alarms_per_month, r.recall_useful * 100),
+                    textcoords="offset points",
+                    xytext=(6, -10),
+                    fontsize=7,
+                    color=color,
+                )
         u = t[(t.framing == fr) & (t.rule == "CQR upper bound")].iloc[0]
         ax.scatter(
-            u.false_alerts_per_month,
-            u.recall_early * 100,
+            u.false_alarms_per_month,
+            u.recall_useful * 100,
             marker="*",
             s=110,
             zorder=5,
@@ -335,24 +345,24 @@ def alert_tradeoff(p_all, st="ETTh2", model="Ensemble"):
         )
     u = t[(t.framing == "C") & (t.rule == "CQR upper bound")].iloc[0]
     ax.annotate(
-        "★ alarm on 90 % upper bound (CQR)",
-        (u.false_alerts_per_month, u.recall_early * 100),
+        "★ alarm on the 90 % upper bound (CQR)",
+        (u.false_alarms_per_month, u.recall_useful * 100),
         textcoords="offset points",
-        xytext=(0, -16),
+        xytext=(12, -34),
         fontsize=7,
-        ha="center",
         color=MODEL_COLORS["GBM"],
+        arrowprops={"arrowstyle": "-", "color": MODEL_COLORS["GBM"], "lw": 0.6},
     )
     ax.scatter([0], [0], color=INK, zorder=5)
     ax.annotate(
-        "Status-quo threshold alarm (0 h warning)",
+        "Today's threshold alarm (no advance warning)",
         (0, 0),
         textcoords="offset points",
         xytext=(8, 4),
         fontsize=7,
     )
-    ax.set_xlabel("False alert-hours per month")
-    ax.set_ylabel("Hot-spell onsets warned ≥1 h ahead [%]")
+    ax.set_xlabel("False alarms per month (consecutive alert hours count as one alarm)")
+    ax.set_ylabel("Hot spells warned ≥12 h ahead [%]")
     ax.set_title(f"{st}: early-warning trade-off (proxy alarm level {thr:.1f})", loc="left")
     ax.legend(fontsize=8, loc="lower right")
     save(fig, "res_alert_tradeoff")
@@ -491,29 +501,50 @@ def fig_skill(t):
     save(fig, "res_skill")
 
 
-def fig_monthly(m):
-    fig, axes = plt.subplots(1, 2, figsize=(10, 3.4))
-    for ax, st in zip(axes, C.STATIONS, strict=True):
-        for fr, model, ls, col in [
-            ("-", "Persistence", "-", FAMILY_COLORS["Benchmark"]),
-            ("C", "Ridge", "-", FAMILY_COLORS["Linear"]),
-            ("B", "GBM", "--", FAMILY_COLORS["Trees"]),
-        ]:
-            d = m[(m.station == st) & (m.framing == fr) & (m.model == model)]
-            ax.plot(
-                pd.to_datetime(d.fold),
-                d.MAE,
-                ls=ls,
-                marker="o",
-                ms=3,
-                color=col,
-                label=label(fr, model),
-            )
-        ax.set_title(f"{st}: MAE by evaluation month", loc="left")
-        ax.set_ylabel("MAE")
-        ax.tick_params(axis="x", rotation=45)
-    axes[0].legend(fontsize=8)
-    save(fig, "res_monthly")
+def fig_error_analysis(p):
+    """Where the model helps and where it fails: skill by month, and error by temperature."""
+    fig, (ax_m, ax_t) = plt.subplots(
+        1, 2, figsize=(11, 3.6), gridspec_kw={"width_ratios": [1.1, 1]}
+    )
+    for st in C.STATIONS:
+        ps = p[p.station == st]
+        mae = (ps.ot_pred - ps.ot_true).abs().groupby([ps.model, ps.framing, ps.fold]).mean()
+        skill = 1 - mae["Ridge", "C"] / mae["Persistence", "-"]
+        ax_m.plot(
+            pd.to_datetime(skill.index),
+            skill * 100,
+            marker="o",
+            ms=3,
+            color=STATION_COLORS[st],
+            label=f"{st}: Ridge (C)",
+        )
+    ax_m.axhline(0, color=INK, lw=0.8)
+    ax_m.set_ylabel("Error reduction vs persistence [%]")
+    ax_m.set_title("By month: gains vary; a few months are worse", loc="left")
+    ax_m.tick_params(axis="x", rotation=45)
+    ax_m.legend(fontsize=8, loc="upper right")
+
+    st = "ETTh2"
+    ps = p[p.station == st]
+    hot = development(load_station(st).OT).quantile(0.90)
+    edges = [-np.inf, 20, 30, 40, hot, np.inf]
+    names = ["<20", "20–30", "30–40", f"40–{hot:.0f}", f">{hot:.0f}\n(hottest 10 %)"]
+    models = [("-", "Persistence"), ("C", "Ridge"), ("C", "Ensemble")]
+    width = 0.27
+    for i, (fr, m) in enumerate(models):
+        d = ps[(ps.framing == fr) & (ps.model == m)]
+        band = pd.cut(d.ot_true, edges, labels=names)
+        mae = (d.ot_pred - d.ot_true).abs().groupby(band, observed=False).mean()
+        x = np.arange(len(names)) + (i - 1) * width
+        ax_t.bar(x, mae, width, color=FAMILY_COLORS[FAMILY[m]], label=label(fr, m))
+    ax_t.set_xticks(range(len(names)))
+    ax_t.set_xticklabels(names, fontsize=8)
+    ax_t.set_xlabel("Measured oil temperature at the target time [°C]")
+    ax_t.set_ylabel("MAE [°C]")
+    ax_t.set_title(f"{st} by temperature: worse than persistence when hottest", loc="left")
+    ax_t.set_ylim(0, ax_t.get_ylim()[1] * 1.2)
+    ax_t.legend(fontsize=8, loc="upper center", ncol=3)
+    save(fig, "res_error_analysis")
 
 
 def fig_noise(t):
@@ -537,7 +568,18 @@ def fig_noise(t):
         )
         b = d.skill_strict_B.iloc[0] * 100
         ax.axhline(b, color=STATION_COLORS[st], ls=":", lw=1)
-        ax.text(20.4, b, f"{st} strict (B)", fontsize=7, color=STATION_COLORS[st], va="center")
+        # Higher line: label above it at the right; lower line: below it at the left.
+        above = b >= t.skill_strict_B.max() * 100
+        ax.annotate(
+            f"{st} without plan (B)",
+            (26, b) if above else (0, b),
+            textcoords="offset points",
+            xytext=(0, 3) if above else (0, -3),
+            va="bottom" if above else "top",
+            ha="right" if above else "left",
+            fontsize=7,
+            color=STATION_COLORS[st],
+        )
     ax.axhline(0, color=INK, lw=0.8)
     ax.set_xticks([0, 5, 10, 20])
     ax.set_xlim(-1, 26)
@@ -558,9 +600,82 @@ def fig_importance(agg):
     save(fig, "res_importance")
 
 
+def fig_headline(t):
+    """The headline: how much lower the 24 h error is than persistence, with and without plan."""
+    bars = [
+        ("B", "Ridge", "Ridge (B), no plan", "#90b4dc"),
+        ("C", "Ridge", "Ridge (C), with plan", FAMILY_COLORS["Linear"]),
+        ("C", "Ensemble", "Ensemble (C), with plan", FAMILY_COLORS["Ensemble"]),
+    ]
+    width = 0.26
+    fig, ax = plt.subplots(figsize=(8, 3.4))
+    for i, (fr, m, name, colour) in enumerate(bars):
+        for j, st in enumerate(C.STATIONS):
+            r = t[(t.station == st) & (t.framing == fr) & (t.model == m)].iloc[0]
+            x = j + (i - 1) * width
+            value = r.skill_vs_persistence * 100
+            ax.bar(x, value, width, color=colour, label=name if j == 0 else None)
+            star = "*" if r.DM_p_holm < 0.05 else ""
+            ax.annotate(
+                f"{value:.1f}%{star}",
+                (x, value),
+                textcoords="offset points",
+                xytext=(0, 3),
+                ha="center",
+                fontsize=8,
+            )
+    ax.axhline(0, color=INK, lw=0.8)
+    ax.set_xticks(range(len(C.STATIONS)))
+    ax.set_xticklabels(C.STATIONS)
+    ax.set_ylabel("24 h error reduction vs persistence [%]")
+    ax.set_ylim(0, ax.get_ylim()[1] * 1.15)
+    ax.set_title(
+        "How much lower the 24 h-ahead error is than persistence (* Holm-adjusted p < 0.05)",
+        loc="left",
+        fontsize=10,
+    )
+    ax.legend(fontsize=8, loc="upper right")
+    save(fig, "res_headline")
+
+
+def fig_coverage():
+    """Does a nominal 90 % interval contain the truth 90 % of the time, month by month?"""
+    t = pd.read_csv(C.TAB_DIR / "intervals_folds.csv")
+    t = t[t.framing == "C"]
+    fig, ax = plt.subplots(figsize=(6.4, 3.6))
+    for st in C.STATIONS:
+        d = t[t.station == st]
+        months = pd.to_datetime(d.fold)
+        colour = STATION_COLORS[st]
+        ax.plot(
+            months,
+            d.coverage_raw_qr * 100,
+            ls="--",
+            marker="o",
+            ms=3,
+            color=colour,
+            alpha=0.5,
+            label=f"{st}: quantile regression",
+        )
+        ax.plot(
+            months, d.coverage_cqr * 100, marker="o", ms=3, color=colour, label=f"{st}: after CQR"
+        )
+    ax.axhline(100 * (1 - C.INTERVAL_ALPHA), color=INK, ls=":", lw=1)
+    ax.annotate("target 90 %", (months.iloc[-1], 90.5), fontsize=7, color=INK, ha="right")
+    ax.set_ylabel("Truths inside the interval [%]")
+    ax.set_title("Coverage of the 90 % interval by month (framing C)", loc="left")
+    ax.tick_params(axis="x", rotation=45)
+    ax.legend(fontsize=7, loc="lower right", ncol=2)
+    save(fig, "res_coverage")
+
+
 def fig_example(p):
+    """One month of forecasts, chosen by rule: the month with the median Ridge (C) skill."""
     st = "ETTh2"
-    thr, _, _ = _alert_inputs(st)
+    ps = p[p.station == st]
+    mae = (ps.ot_pred - ps.ot_true).abs().groupby([ps.model, ps.framing, ps.fold]).mean()
+    skill = (1 - mae["Ridge", "C"] / mae["Persistence", "-"]).sort_values()
+    month = skill.index[(len(skill) - 1) // 2]
     d = (
         p[(p.station == st) & (p.framing == "C") & (p.model == "GBM")]
         .set_index("target_time")
@@ -572,7 +687,8 @@ def fig_example(p):
         .sort_index()
     )
     pers = p[(p.station == st) & (p.model == "Persistence")].set_index("target_time").sort_index()
-    sl = slice("2017-07-08", "2017-07-28")
+    start = pd.Timestamp(month)
+    sl = slice(start, start + pd.Timedelta(days=20))
     win, e, pers = d[sl], e[sl], pers[sl]
     fig, ax = plt.subplots(figsize=(10, 3.4))
     ax.fill_between(
@@ -593,8 +709,12 @@ def fig_example(p):
         label="Ridge (C), issued 24 h earlier",
     )
     ax.plot(pers.index, pers.ot_pred, color=MUTED, lw=1, ls="--", label="Persistence")
-    ax.axhline(thr, color="#c53030", lw=1, ls=":", label=f"Proxy alarm level ({thr:.1f})")
-    ax.set_title(f"{st}, July 2017: 24 h-ahead forecasts shown at their target time", loc="left")
+    ax.set_title(
+        f"{st}, {start:%B %Y} (median month: {skill[month]:+.0%} vs persistence), "
+        "24 h-ahead forecasts at their target time",
+        loc="left",
+        fontsize=10,
+    )
     ax.set_ylabel("OT")
     ax.legend(fontsize=8, ncol=3, loc="lower left")
     save(fig, "res_example_forecast")
@@ -607,14 +727,17 @@ def main() -> None:
     done("Forecasts loaded")
     step("Scoring every model against persistence")
     t = overall_table(p)
+    fig_headline(t)
     fig_skill(t)
-    fig_monthly(monthly_table(p))
+    monthly_table(p)
+    fig_error_analysis(p)
     done("Accuracy tables and figures")
     for st in C.STATIONS:
         r = t[(t.station == st) & (t.framing == "C") & (t.model == "Ridge")].iloc[0]
-        note(f"{st}: Ridge (C) 24 h error {r.skill_vs_persistence:+.1%} vs persistence")
+        note(f"{st}: Ridge (C) 24 h error {r.skill_vs_persistence:.1%} lower than persistence")
     step("Intervals, alerts, load-plan robustness and feature importance")
     intervals = interval_table()
+    fig_coverage()
     alert_table(p_all)
     tradeoff = alert_tradeoff(p_all)
     fig_noise(noise_table(p))
@@ -627,10 +750,10 @@ def main() -> None:
         f"90% interval coverage after CQR: "
         f"ETTh1 {c.coverage_cqr.ETTh1:.0%}, ETTh2 {c.coverage_cqr.ETTh2:.0%}"
     )
-    a = tradeoff[(tradeoff.framing == "C") & (tradeoff.margin == 4.0)].iloc[0]
+    a = tradeoff[(tradeoff.framing == "C") & (tradeoff.margin == 5.0)].iloc[0]
     note(
-        f"ETTh2 alerts at a 4 °C margin: {a.recall_early:.0%} of onsets warned, "
-        f"median {a.median_lead_h:.0f} h ahead"
+        f"ETTh2 alerts at a 5 °C margin: {a.recall_useful:.0%} of hot spells warned ≥12 h ahead, "
+        f"{a.false_alarms_per_month:.1f} false alarms per month"
     )
     wrote(C.TAB_DIR, C.FIG_DIR)
 

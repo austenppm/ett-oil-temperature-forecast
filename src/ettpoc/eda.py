@@ -144,7 +144,7 @@ def fig_persistence_horizon(dfs):
     ax.set_xticklabels(hs)
     ax.set_xlabel("Forecast horizon (hours, log scale)")
     ax.set_ylabel("MAE of 'no change' forecast")
-    ax.set_title("Persistence is strong at 1 h but degrades by 24 h", loc="left")
+    ax.set_title("Persistence error grows with the horizon (12 h is out of phase)", loc="left")
     ax.legend()
     save(fig, "eda_persistence_horizon")
 

@@ -1,17 +1,17 @@
-station,system,threshold,episodes,episodes_unscorable,recall_early,median_lead_h,alerts,alerts_unscorable,precision,false_alerts_per_month
-ETTh1,Threshold alarm on current OT (status quo),35.244,0,0,0.0,0.0,0,0,,
-ETTh1,24 h forecast alarm: Persistence point forecast,35.244,0,0,,,0,0,,0.0
-ETTh1,24 h forecast alarm: Ridge (B) point forecast,35.244,0,0,,,0,0,,0.0
-ETTh1,24 h forecast alarm: GBM (B) upper 90% bound,35.244,0,0,,,0,0,,0.0
-ETTh1,24 h forecast alarm: Ridge (C) point forecast,35.244,0,0,,,0,0,,0.0
-ETTh1,24 h forecast alarm: Ensemble (C) point forecast,35.244,0,0,,,0,0,,0.0
-ETTh1,24 h forecast alarm: GBM-peak (C) point forecast,35.244,0,0,,,0,0,,0.0
-ETTh1,24 h forecast alarm: GBM (C) upper 90% bound,35.244,0,0,,,0,0,,0.0
-ETTh2,Threshold alarm on current OT (status quo),46.353,15,0,0.0,0.0,0,0,,
-ETTh2,24 h forecast alarm: Persistence point forecast,46.353,15,0,0.0,,350,2,0.842,4.64
-ETTh2,24 h forecast alarm: Ridge (B) point forecast,46.353,15,0,0.067,21.0,256,2,0.89,2.362
-ETTh2,24 h forecast alarm: GBM (B) upper 90% bound,46.353,15,0,1.0,24.0,1010,22,0.596,33.664
-ETTh2,24 h forecast alarm: Ridge (C) point forecast,46.353,15,0,0.067,21.0,256,2,0.909,1.941
-ETTh2,24 h forecast alarm: Ensemble (C) point forecast,46.353,15,0,0.067,22.0,223,5,0.954,0.844
-ETTh2,24 h forecast alarm: GBM-peak (C) point forecast,46.353,15,0,0.267,21.0,278,7,0.908,2.109
-ETTh2,24 h forecast alarm: GBM (C) upper 90% bound,46.353,15,0,1.0,24.0,994,24,0.613,31.639
+station,system,threshold,episodes,episodes_unscorable,recall_early,recall_useful,median_lead_h,alerts,alerts_unscorable,precision,false_alerts_per_month,alarms,false_alarms_per_month
+ETTh1,Threshold alarm on current OT (status quo),35.244,0,0,0.0,,0.0,0,0,,,0,
+ETTh1,24 h forecast alarm: Persistence point forecast,35.244,0,0,,,,0,0,,0.0,0,0.0
+ETTh1,24 h forecast alarm: Ridge (B) point forecast,35.244,0,0,,,,0,0,,0.0,0,0.0
+ETTh1,24 h forecast alarm: GBM (B) upper 90% bound,35.244,0,0,,,,0,0,,0.0,0,0.0
+ETTh1,24 h forecast alarm: Ridge (C) point forecast,35.244,0,0,,,,0,0,,0.0,0,0.0
+ETTh1,24 h forecast alarm: Ensemble (C) point forecast,35.244,0,0,,,,0,0,,0.0,0,0.0
+ETTh1,24 h forecast alarm: GBM-peak (C) point forecast,35.244,0,0,,,,0,0,,0.0,0,0.0
+ETTh1,24 h forecast alarm: GBM (C) upper 90% bound,35.244,0,0,,,,0,0,,0.0,0,0.0
+ETTh2,Threshold alarm on current OT (status quo),46.353,15,0,0.0,0.0,0.0,0,0,,,0,
+ETTh2,24 h forecast alarm: Persistence point forecast,46.353,15,0,0.0,0.0,,350,2,0.842,4.64,48,1.012
+ETTh2,24 h forecast alarm: Ridge (B) point forecast,46.353,15,0,0.067,0.067,20.0,295,2,0.86,3.459,47,0.844
+ETTh2,24 h forecast alarm: GBM (B) upper 90% bound,46.353,15,0,1.0,0.933,24.0,1010,22,0.596,33.664,123,6.243
+ETTh2,24 h forecast alarm: Ridge (C) point forecast,46.353,15,0,0.067,0.067,21.0,283,2,0.897,2.447,46,0.759
+ETTh2,24 h forecast alarm: Ensemble (C) point forecast,46.353,15,0,0.067,0.067,22.0,229,5,0.951,0.928,37,0.337
+ETTh2,24 h forecast alarm: GBM-peak (C) point forecast,46.353,15,0,0.267,0.2,21.0,278,7,0.908,2.109,45,0.675
+ETTh2,24 h forecast alarm: GBM (C) upper 90% bound,46.353,15,0,1.0,0.933,24.0,994,24,0.613,31.639,119,5.99

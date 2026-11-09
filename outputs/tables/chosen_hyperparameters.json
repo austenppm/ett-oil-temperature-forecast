@@ -2,7 +2,7 @@
   "ETTh1": {
     "B": {
       "Ridge": {
-        "alpha": 1000
+        "alpha": 3000
       },
       "GBM": {
         "learning_rate": 0.05,
@@ -30,7 +30,7 @@
   "ETTh2": {
     "B": {
       "Ridge": {
-        "alpha": 1000
+        "alpha": 10000
       },
       "GBM": {
         "learning_rate": 0.05,
@@ -38,12 +38,12 @@
         "min_samples_leaf": 50
       },
       "WindowLinear": {
-        "alpha": 10000
+        "alpha": 30000
       }
     },
     "C": {
       "Ridge": {
-        "alpha": 1000
+        "alpha": 3000
       },
       "GBM": {
         "learning_rate": 0.05,
@@ -51,7 +51,7 @@
         "min_samples_leaf": 50
       },
       "WindowLinear": {
-        "alpha": 10000
+        "alpha": 30000
       }
     }
   }
